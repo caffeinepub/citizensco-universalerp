@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "CitizensCo UniversalERP is an Internet Computer (ICP) canister-backed web app with a React SPA frontend. It includes ecommerce-style flows (catalog/cart/Stripe checkout redirect), wallet connector support (Oisy default with Plug alternative), and admin-gated dashboards for CRM and HRMS (largely UI shells). Authentication is via DFINITY Internet Identity. Multi-organization Phase 1 has been pursued/implemented (organization entity + memberships + org switcher concept), but full tenant isolation across all ERP modules is still incomplete; current priority is making wallets/transactions organization-scoped.",
+  "existing_features": [
+    {
+      "id": "IF-1",
+      "title": "Internet Identity authentication context",
+      "synonyms": [
+        "II login",
+        "AuthClient provider",
+        "DelegationIdentity session"
+      ],
+      "description": "Provides an InternetIdentityProvider/useInternetIdentity hook wrapping @dfinity/auth-client, restoring persisted identities on reload, supporting login/logout, and exposing detailed status flags and error state.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-2",
+      "title": "Canister actor bootstrap with RBAC initialization",
+      "synonyms": [
+        "useActor",
+        "actor recreation on principal change",
+        "_initializeAccessControlWithSecret"
+      ],
+      "description": "Creates an anonymous actor when unauthenticated and an authenticated actor when logged in; on authenticated creation, extracts a secret token and calls the backend RBAC initialization entrypoint, then invalidates/refetches other React Query caches when the actor changes.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-3",
+      "title": "Secure URL hash secret extraction and session persistence",
+      "synonyms": [
+        "getSecretParameter",
+        "getSecretFromHash",
+        "hash param clearing"
+      ],
+      "description": "Utilities read secrets from the URL hash fragment, persist them in sessionStorage, and remove the secret parameter from the URL via history.replaceState to reduce leakage in navigation history/referrers.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-4",
+      "title": "Backend role-based access control (admin/user/guest)",
+      "synonyms": [
+        "AccessControl",
+        "MixinAuthorization",
+        "isCallerAdmin"
+      ],
+      "description": "Motoko access control assigns roles to principals (first-time initialization can set an admin if token matches), supports admin-only role assignment, and provides role/admin queries used by the frontend to gate dashboards.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-5",
+      "title": "User profile storage and onboarding modal",
+      "synonyms": [
+        "UserProfile",
+        "getCallerUserProfile",
+        "ProfileSetupModal"
+      ],
+      "description": "Backend stores per-caller profiles with getCallerUserProfile/saveCallerUserProfile; frontend checks for missing profile after authentication and forces a modal to collect a user name before continuing.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-6",
+      "title": "Stripe configuration and hosted checkout session creation",
+      "synonyms": [
+        "StripeSetupModal",
+        "isStripeConfigured",
+        "createCheckoutSession"
+      ],
+      "description": "Backend stores Stripe configuration (admin-only) and creates Stripe Checkout sessions via HTTP outcalls; frontend prompts admins to configure Stripe when missing and uses checkout session URLs to redirect users to Stripe-hosted payment.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-7",
+      "title": "React Query hook layer for backend operations",
+      "synonyms": [
+        "useQueries",
+        "query keys",
+        "mutation invalidation"
+      ],
+      "description": "Centralized query/mutation hooks define consistent cache keys, enabling rules, and invalidation behavior for profiles, admin checks, Stripe calls, and scaffolded ERP modules (many endpoints are placeholders pending backend methods).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-8",
+      "title": "Shopping cart state management with localStorage persistence",
+      "synonyms": [
+        "CartProvider",
+        "add/remove/update quantity",
+        "computed totals"
+      ],
+      "description": "Cart context persists cart items to localStorage, supports add/remove/updateQuantity/clearCart, and computes total items and total price used in cart and checkout UI.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-9",
+      "title": "SPA routing with shared layout and module pages",
+      "synonyms": [
+        "TanStack Router",
+        "Layout with Header/Footer",
+        "payment result routes"
+      ],
+      "description": "Defines routes for storefront, cart, orders, admin, CRM, HRMS, and payment success/failure pages under a shared Layout with Header/Footer; includes navigation actions and access-denied screens for non-admins.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-10",
+      "title": "ICP wallet connector framework (Plug + Oisy)",
+      "synonyms": [
+        "WalletConnectorProvider",
+        "PlugConnector",
+        "OisyConnector",
+        "walletConnectorRegistry"
+      ],
+      "description": "Implements a wallet-connector abstraction with detection of in-page providers (window.ic.*), automatic default selection (prefers Oisy, falls back to Plug), connect/disconnect flows, and UI integration in the cart for ICP-payment selection.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "Identity formatting helper for UI display",
+      "synonyms": [
+        "formatIdentity",
+        "principal truncation",
+        "account id shortening"
+      ],
+      "description": "Utility function to truncate long identity strings (prefix...suffix) for display in wallet connection and other UI contexts.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
+      "title": "Admin/CRM/HRMS dashboard shells and management UIs (scaffold)",
+      "synonyms": [
+        "AdminDashboard",
+        "CrmDashboard",
+        "HrmsDashboard",
+        "management tabs"
+      ],
+      "description": "Admin-gated dashboards with KPI cards and tabbed UIs for products/categories/orders/organizations, CRM pipeline/contacts/leads/opportunities, and HRMS employees/departments/leaves/attendance/payroll/performance. Many actions are wired to placeholder hooks pending backend implementations.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-13",
+      "title": "Blob-storage maintenance mixin",
+      "synonyms": [
+        "gateway principal sync",
+        "dead blob pruning",
+        "cashier refill"
+      ],
+      "description": "Motoko mixin provides functions to refresh authorized gateway principals from a cashier canister, list/prune dead blobs with authorization checks, and top up cycles through a cashier interface; also exposes a certificate creation stub.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-14",
+      "title": "HTTP outcalls helper with response transform",
+      "synonyms": [
+        "OutCall",
+        "IC.http_request wrapper",
+        "transform strips headers"
+      ],
+      "description": "Motoko module wraps IC.http_request for GET/POST with cycle budgeting, default headers (User-Agent, idempotency key for POST), optional transform function, and UTF-8 decoding with traps on empty responses.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-15",
+      "title": "Backend Candid-stable ERP type definitions and read-only getters",
+      "synonyms": [
+        "main.mo type section",
+        "getProduct/getOrder/getContact",
+        "HR getters"
+      ],
+      "description": "backend/main.mo defines explicit stable Candid types for organizations, ecommerce, CRM, and HRMS domains and implements authorization-checked read-only getter methods for many entity types (most create/list/update/delete APIs are not yet implemented).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-16",
+      "title": "Migration scaffold for legacy wallet state (no-op)",
+      "synonyms": [
+        "migration.mo",
+        "(with migration = ...)",
+        "legacy types"
+      ],
+      "description": "Includes a migration module referenced by the actor that defines legacy wallet transaction/event structures and a run function that currently performs a no-op migration to an empty new state.",
+      "reqIds": [],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Implement true multi-organization (multi-tenant) support Phase 1: backend organization entity + org-scoped memberships/roles, plus frontend org switcher and org management UI",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Make wallets, wallet transactions, and wallet events organization-scoped (org data isolation) end-to-end, starting with backend stores then APIs then frontend wiring",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add per-organization setting to choose default wallet connector (e.g., Oisy vs Plug)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add two additional alternative payment methods beyond Stripe (candidate options discussed: ICP-native payments and manual/bank transfer)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "In `backend/main.mo`, add the missing internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, and wallet events). The types must be Candid-friendly and follow the same explicit, canonical style as existing types (e.g., `Organization`, `Order`, CRM/HRMS records). Ensure the new wallet-related types include `organizationId : OrganizationId` so they can support multi-tenant isolation in later steps.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    }
+  ],
+  "architectural_notes": [
+    "Frontend is a React SPA using TanStack Router (route tree + shared Layout) and provider composition (ThemeProvider, React Query, InternetIdentityProvider, CartProvider, OrganizationProvider, WalletConnectorProvider).",
+    "Data access is centralized in frontend/src/hooks/useQueries.ts using @tanstack/react-query (query keys, enabled flags, polling for some wallet-related queries, and cache invalidation on mutations).",
+    "Backend access is via a dynamically created canister actor in useActor; actor recreation is keyed by principal and triggers global query invalidation/refetch (excluding the actor query itself).",
+    "Authentication uses @dfinity/auth-client; identities persist across reloads, and delegation validity is checked to prevent redundant logins.",
+    "Backend Motoko code uses mixin composition (authorization mixin + blob-storage mixin) included into the main actor.",
+    "Stripe integration is implemented via management canister HTTP outcalls with a response transform that strips headers, and includes idempotency keys on POST.",
+    "URL-secret handling is designed to prefer hash fragment secrets with sessionStorage persistence and hash cleanup to reduce leakage.",
+    "Multi-organization direction: introduce first-class Organization domain with user↔organization memberships and org-scoped roles; frontend maintains an active-organization context (org switcher) intended to scope queries and permissions.",
+    "Wallet connector preference updated: Oisy set as default wallet connector with Plug available as an alternative; per-organization default selection requested.",
+    "Org-scoped wallet isolation work is being implemented incrementally via 'micro-steps' to avoid tooling execution limits (e.g., adding unused org-keyed wallet store first, then transactions/events)."
+  ],
+  "known_issues": [
+    "Most hooks in frontend/src/hooks/useQueries.ts are placeholders: organizations listing/creation/membership, wallets/transactions/events, products/categories/orders/analytics, CRM entities, and HRMS entities largely return [] / null, are disabled, or throw \"Backend method not yet implemented\".",
+    "Admin/CRM/HRMS management UIs are mostly non-functional end-to-end because their corresponding backend methods are missing; actions will error at runtime when mutations are invoked.",
+    "OrganizationManagement constructs an Organization with createdBy: '' cast as any; backend Organization.createdBy is a Principal, so a real createOrganization API would need to set this server-side to avoid type/decoding issues.",
+    "Stripe request body builder uses shipping_address_collection[allowed_countries][0] for every country, likely resulting in only one effective allowed country value.",
+    "Stripe urlEncode implementation is incomplete (only replaces space/&/=) and may break for other special characters.",
+    "AccessControl.getUserRole traps for non-anonymous principals that have not been initialized/registered; if a caller hits role-checked APIs before _initializeAccessControlWithSecret runs, requests can trap.",
+    "WalletSummary and other UI components convert bigint monetary values to JavaScript Number for aggregation/display; large values can overflow/lose precision.",
+    "There are two Tailwind token files (frontend/index.css and frontend/src/index.css) with divergent variables; the app imports src/index.css, leaving the root-level file unused and potentially confusing.",
+    "Multi-tenant isolation is not yet end-to-end: wallets/transactions (and most ecommerce/CRM/HRMS data) are not fully organization-scoped yet; org membership exists but broader module data isolation remains incomplete.",
+    "Org-scoped transactions store addition is currently blocked intermittently by build/execution tooling limits; requires ultra-small, one-file/one-change micro-steps."
+  ],
+  "isFixRequest": false,
+  "gameProjectType": "none",
+  "projectName": "CitizensCo UniversalERP",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

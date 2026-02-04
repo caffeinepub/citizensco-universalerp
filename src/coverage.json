@@ -1,0 +1,36 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T11:28:30.352Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 0,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "In `backend/main.mo`, add the missing internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, and wallet events). The types must be Candid-friendly and follow the same explicit, canonical style as existing types (e.g., `Organization`, `Order`, CRM/HRMS records). Ensure the new wallet-related types include `organizationId : OrganizationId` so they can support multi-tenant isolation in later steps.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

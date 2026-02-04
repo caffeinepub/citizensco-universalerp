@@ -1,0 +1,39 @@
+{
+  "kind": "build_request",
+  "title": "Add internal Motoko type definitions (wallets/transactions/events, org-scoped)",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "In `backend/main.mo`, add the missing internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, and wallet events). The types must be Candid-friendly and follow the same explicit, canonical style as existing types (e.g., `Organization`, `Order`, CRM/HRMS records). Ensure the new wallet-related types include `organizationId : OrganizationId` so they can support multi-tenant isolation in later steps.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "proceed with adding just the internal Motoko type definitions as the next small step"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`backend/main.mo` compiles successfully with no changes required to frontend code.",
+        "New wallet domain types (wallet, transaction, event) are present and include an `organizationId : OrganizationId` field.",
+        "The added types are usable in Candid (i.e., only Candid-compatible fields/variants) and match the existing style of type definitions in `backend/main.mo`."
+      ]
+    }
+  ],
+  "constraints": [
+    "Backend must remain single-actor; keep all Motoko logic and type definitions in `backend/main.mo`.",
+    "Do not add or change persistence stores, APIs, or frontend wiring in this step—types only.",
+    "Do not introduce a migration unless a state schema upgrade is actually performed (this step should not require migration)."
+  ],
+  "nonGoals": [
+    "Implementing wallet/transaction/event storage (Maps) or CRUD/query methods.",
+    "Adding or modifying React Query hooks (`frontend/src/hooks/useQueries.ts`) or any UI components.",
+    "Completing end-to-end multi-organization isolation across modules."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

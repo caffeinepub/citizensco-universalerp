@@ -1,0 +1,30 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T11:28:30.333Z",
+  "summary": "REQ-1 cannot be verified from the provided diff excerpt because the `backend/main.mo` content is truncated and the visible portion does not show any wallet/transaction/event type definitions. Additionally, `project_state.json` was modified even though the BuildRequest explicitly constrained this step to be “types only” in `backend/main.mo`.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "In `backend/main.mo`, add internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, wallet events), Candid-friendly, in the existing canonical style, and including `organizationId : OrganizationId`.",
+      "reason": "The visible portion of the truncated `backend/main.mo` diff shows organization/product/CRM/HRMS types but does not show any wallet-related types (wallet/transaction/event), so implementation cannot be confirmed from the provided evidence.",
+      "evidence": [
+        "backend/main.mo (truncated diff excerpt shows no wallet-related types)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Modified `project_state.json` despite the request to limit this step to Motoko type definitions only and to keep all changes in `backend/main.mo`.",
+      "reason": "BuildRequest constraints say “types only” and “keep all Motoko logic and type definitions in `backend/main.mo`” with no other wiring/changes; editing `project_state.json` is outside that scope.",
+      "evidence": [
+        "project_state.json"
+      ]
+    }
+  ],
+  "confidence": 0.66,
+  "changed_files": [
+    "backend/main.mo",
+    "project_state.json"
+  ]
+}
