@@ -1,23 +1,15 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T02:02:58.124Z",
-  "summary": "Diff adds a new `backend/migration.mo` module with a `run(...)` function and updates `backend/main.mo` to import `Migration`, but the provided `backend/main.mo` diff snippet does not show any `preupgrade`/`postupgrade` plumbing or stable storage implementation. The migration interface also lacks explicit versioning/forward-compatibility structures and does not clearly handle empty/fresh state safely based on the shown signature.",
+  "generatedAt": "2026-02-05T02:13:35.809Z",
+  "summary": "REQ-2 is clearly implemented via a new `backend/migration.mo` with a `run(...)` entrypoint that performs a safe identity migration on wallet-domain maps. For REQ-1, the diff shows `backend/main.mo` now imports `Migration`, but the provided truncated diff does not include evidence of `system func preupgrade` / `system func postupgrade` wiring or stable-variable persistence/migration routing, so REQ-1 cannot be confirmed as implemented from the available diff summary.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "In `backend/main.mo`, implement canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) with stable storage for wallet-domain state, written in `preupgrade`, restored in `postupgrade`, and routed through `migration.run(...)` during upgrade.",
-      "reason": "The diff snippet for `backend/main.mo` only shows an added `import Migration \"migration\";` and type definitions; it does not show any `stable var` for wallet-domain state nor `system func preupgrade` / `system func postupgrade` that persist and restore state and call `migration.run(...)`. Given the truncation, this cannot be verified as implemented.",
+      "requirement": "In `backend/main.mo`, implement correct canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) to persist the wallet-domain stable state across upgrades and route it through `Migration.run(...)` during upgrade, while keeping all existing public APIs backward-compatible.",
+      "reason": "The diff summary shows `import Migration \"migration\";` but does not show any `system func preupgrade` / `system func postupgrade` implementations, nor evidence of reading/writing wallet-domain stable variables and invoking `Migration.run(preUpgradeState)` in `postupgrade`. Because `backend/main.mo` is truncated, this may exist outside the shown region, but it is not evidenced in the provided diff.",
       "evidence": [
         "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Make the migration interface version-tolerant/forward-compatible (e.g., explicit versioning or an extensible structure) and safe to run on both empty/fresh state and existing state.",
-      "reason": "`backend/migration.mo` defines `run(legacyState : LegacyWalletState) : MigratedWalletState` with no version field or extensible wrapper structure. Also, `run` requires a non-optional `legacyState` containing three `Map.Map` fields; the diff does not show any accommodation for the upgrade path when no prior wallet state exists (e.g., optional input, default empty maps, or versioned variants).",
-      "evidence": [
-        "backend/migration.mo"
       ]
     }
   ],

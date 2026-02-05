@@ -43,6 +43,7 @@ export interface CrmTask {
   'relatedContact' : [] | [string],
   'relatedLead' : [] | [string],
 }
+export type CurrencyCode = string;
 export interface Department {
   'id' : string,
   'name' : string,
@@ -63,6 +64,7 @@ export type EmployeeStatus = { 'onLeave' : null } |
   { 'active' : null } |
   { 'terminated' : null } |
   { 'inactive' : null };
+export type EventType = string;
 export type ExternalBlob = Uint8Array;
 export interface Lead {
   'id' : string,
@@ -181,6 +183,13 @@ export type StripeSessionStatus = {
   } |
   { 'failed' : { 'error' : string } };
 export type Time = bigint;
+export type TransactionId = string;
+export type TransactionStatus = { 'pending' : null } |
+  { 'completed' : null } |
+  { 'failed' : null };
+export type TransactionType = { 'deposit' : null } |
+  { 'withdrawal' : null } |
+  { 'transfer' : null };
 export interface TransformationInput {
   'context' : Uint8Array,
   'response' : http_request_result,
@@ -198,6 +207,42 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface Wallet {
+  'id' : WalletId,
+  'organizationId' : OrganizationId,
+  'balance' : bigint,
+  'name' : string,
+  'createdAt' : Time,
+  'createdBy' : Principal,
+  'description' : [] | [string],
+  'isActive' : boolean,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+}
+export interface WalletEvent {
+  'id' : WalletEventId,
+  'organizationId' : OrganizationId,
+  'createdAt' : Time,
+  'createdBy' : Principal,
+  'description' : string,
+  'payload' : [] | [string],
+  'walletId' : WalletId,
+  'eventType' : EventType,
+}
+export type WalletEventId = string;
+export type WalletId = string;
+export interface WalletTransaction {
+  'id' : TransactionId,
+  'status' : TransactionStatus,
+  'organizationId' : OrganizationId,
+  'transactionType' : TransactionType,
+  'createdAt' : Time,
+  'createdBy' : Principal,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+  'amount' : bigint,
+  'walletId' : WalletId,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -254,6 +299,12 @@ export interface _SERVICE {
   'getProduct' : ActorMethod<[string], [] | [Product]>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getWallet' : ActorMethod<[WalletId], [] | [Wallet]>,
+  'getWalletEvent' : ActorMethod<[WalletEventId], [] | [WalletEvent]>,
+  'getWalletTransaction' : ActorMethod<
+    [TransactionId],
+    [] | [WalletTransaction]
+  >,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,

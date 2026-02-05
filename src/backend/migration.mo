@@ -1,4 +1,7 @@
 import Map "mo:core/Map";
+import Text "mo:core/Text";
+import Time "mo:core/Time";
+import Principal "mo:core/Principal";
 
 module {
   public type WalletId = Text;
@@ -6,19 +9,7 @@ module {
   public type WalletEventId = Text;
   public type OrganizationId = Text;
   public type CurrencyCode = Text;
-
-  public type Wallet = {
-    id : WalletId;
-    organizationId : OrganizationId;
-    name : Text;
-    description : ?Text;
-    balance : Nat;
-    currency : CurrencyCode;
-    createdBy : Principal;
-    createdAt : Int;
-    updatedAt : Int;
-    isActive : Bool;
-  };
+  public type EventType = Text;
 
   public type TransactionType = {
     #deposit;
@@ -32,6 +23,19 @@ module {
     #failed;
   };
 
+  public type Wallet = {
+    id : WalletId;
+    organizationId : OrganizationId;
+    name : Text;
+    description : ?Text;
+    balance : Nat;
+    currency : CurrencyCode;
+    createdBy : Principal;
+    createdAt : Time.Time;
+    updatedAt : Time.Time;
+    isActive : Bool;
+  };
+
   public type WalletTransaction = {
     id : TransactionId;
     walletId : WalletId;
@@ -41,11 +45,9 @@ module {
     currency : CurrencyCode;
     status : TransactionStatus;
     createdBy : Principal;
-    createdAt : Int;
-    updatedAt : Int;
+    createdAt : Time.Time;
+    updatedAt : Time.Time;
   };
-
-  public type EventType = Text;
 
   public type WalletEvent = {
     id : WalletEventId;
@@ -55,26 +57,23 @@ module {
     description : Text;
     payload : ?Text;
     createdBy : Principal;
-    createdAt : Int;
+    createdAt : Time.Time;
   };
 
-  public type LegacyWalletState = {
+  public type WalletDomainState = {
     wallets : Map.Map<WalletId, Wallet>;
     walletTransactions : Map.Map<TransactionId, WalletTransaction>;
     walletEvents : Map.Map<WalletEventId, WalletEvent>;
   };
 
-  public type MigratedWalletState = {
-    wallets : Map.Map<WalletId, Wallet>;
-    walletTransactions : Map.Map<TransactionId, WalletTransaction>;
-    walletEvents : Map.Map<WalletEventId, WalletEvent>;
-  };
-
-  public func run(legacyState : LegacyWalletState) : MigratedWalletState {
+  public func run(state : WalletDomainState) : WalletDomainState {
+    // Forward-compatible migration entrypoint
+    // Currently performs identity transformation
+    // Future migrations can add transformation logic here
     {
-      wallets = legacyState.wallets;
-      walletTransactions = legacyState.walletTransactions;
-      walletEvents = legacyState.walletEvents;
+      wallets = state.wallets;
+      walletTransactions = state.walletTransactions;
+      walletEvents = state.walletEvents;
     };
   };
 };

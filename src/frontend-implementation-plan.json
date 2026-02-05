@@ -1,6 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Activity 2: Upgrade-safe wallet-domain persistence (frontend-only scope)",
+  "title": "Activity 2: Frontend impact assessment for wallet-domain upgrade migration",
   "requirements": []
 }

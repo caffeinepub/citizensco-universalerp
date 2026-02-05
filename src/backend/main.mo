@@ -21,7 +21,6 @@ actor {
   include MixinStorage();
 
   public type OrganizationId = Text;
-
   public type Organization = {
     id : OrganizationId;
     name : Text;
@@ -369,6 +368,13 @@ actor {
     };
   };
 
+  private func getWalletOrganizationId(walletId : WalletId) : ?OrganizationId {
+    switch (wallets.get(walletId)) {
+      case null { null };
+      case (?wallet) { ?wallet.organizationId };
+    };
+  };
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -508,7 +514,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get departments");
     };
-    
+
     switch (getDepartmentOrganizationId(_departmentId)) {
       case null {
         if (not AccessControl.isAdmin(accessControlState, caller)) {
@@ -521,7 +527,7 @@ actor {
         };
       };
     };
-    
+
     departments.get(_departmentId);
   };
 
@@ -621,6 +627,51 @@ actor {
     };
   };
 
+  public query ({ caller }) func getWallet(_walletId : WalletId) : async ?Wallet {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallets");
+    };
+    switch (wallets.get(_walletId)) {
+      case null { null };
+      case (?wallet) {
+        if (not isOrganizationMember(caller, wallet.organizationId) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the wallet's organization");
+        };
+        ?wallet;
+      };
+    };
+  };
+
+  public query ({ caller }) func getWalletTransaction(_transactionId : TransactionId) : async ?WalletTransaction {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet transactions");
+    };
+    switch (walletTransactions.get(_transactionId)) {
+      case null { null };
+      case (?transaction) {
+        if (not isOrganizationMember(caller, transaction.organizationId) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the transaction's organization");
+        };
+        ?transaction;
+      };
+    };
+  };
+
+  public query ({ caller }) func getWalletEvent(_eventId : WalletEventId) : async ?WalletEvent {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet events");
+    };
+    switch (walletEvents.get(_eventId)) {
+      case null { null };
+      case (?event) {
+        if (not isOrganizationMember(caller, event.organizationId) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the event's organization");
+        };
+        ?event;
+      };
+    };
+  };
+
   public query func isStripeConfigured() : async Bool {
     stripeConfig != null;
   };
@@ -658,18 +709,15 @@ actor {
   };
 
   system func preupgrade() {
-    // Wallet domain state is already stable, no action needed
+    // Wallet domain state is already marked stable, no action needed
   };
 
   system func postupgrade() {
-    let legacyState = {
+    let migratedState = Migration.run({
       wallets = wallets;
       walletTransactions = walletTransactions;
       walletEvents = walletEvents;
-    };
-    
-    let migratedState = Migration.run(legacyState);
-    
+    });
     wallets := migratedState.wallets;
     walletTransactions := migratedState.walletTransactions;
     walletEvents := migratedState.walletEvents;

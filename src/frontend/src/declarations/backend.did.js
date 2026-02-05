@@ -209,6 +209,55 @@ export const StripeSessionStatus = IDL.Variant({
   }),
   'failed' : IDL.Record({ 'error' : IDL.Text }),
 });
+export const WalletId = IDL.Text;
+export const CurrencyCode = IDL.Text;
+export const Wallet = IDL.Record({
+  'id' : WalletId,
+  'organizationId' : OrganizationId,
+  'balance' : IDL.Nat,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'description' : IDL.Opt(IDL.Text),
+  'isActive' : IDL.Bool,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+});
+export const WalletEventId = IDL.Text;
+export const EventType = IDL.Text;
+export const WalletEvent = IDL.Record({
+  'id' : WalletEventId,
+  'organizationId' : OrganizationId,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'description' : IDL.Text,
+  'payload' : IDL.Opt(IDL.Text),
+  'walletId' : WalletId,
+  'eventType' : EventType,
+});
+export const TransactionId = IDL.Text;
+export const TransactionStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'completed' : IDL.Null,
+  'failed' : IDL.Null,
+});
+export const TransactionType = IDL.Variant({
+  'deposit' : IDL.Null,
+  'withdrawal' : IDL.Null,
+  'transfer' : IDL.Null,
+});
+export const WalletTransaction = IDL.Record({
+  'id' : TransactionId,
+  'status' : TransactionStatus,
+  'organizationId' : OrganizationId,
+  'transactionType' : TransactionType,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+  'amount' : IDL.Nat,
+  'walletId' : WalletId,
+});
 export const StripeConfiguration = IDL.Record({
   'allowedCountries' : IDL.Vec(IDL.Text),
   'secretKey' : IDL.Text,
@@ -289,6 +338,17 @@ export const idlService = IDL.Service({
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'getWallet' : IDL.Func([WalletId], [IDL.Opt(Wallet)], ['query']),
+  'getWalletEvent' : IDL.Func(
+      [WalletEventId],
+      [IDL.Opt(WalletEvent)],
+      ['query'],
+    ),
+  'getWalletTransaction' : IDL.Func(
+      [TransactionId],
+      [IDL.Opt(WalletTransaction)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
@@ -506,6 +566,55 @@ export const idlFactory = ({ IDL }) => {
     }),
     'failed' : IDL.Record({ 'error' : IDL.Text }),
   });
+  const WalletId = IDL.Text;
+  const CurrencyCode = IDL.Text;
+  const Wallet = IDL.Record({
+    'id' : WalletId,
+    'organizationId' : OrganizationId,
+    'balance' : IDL.Nat,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'description' : IDL.Opt(IDL.Text),
+    'isActive' : IDL.Bool,
+    'updatedAt' : Time,
+    'currency' : CurrencyCode,
+  });
+  const WalletEventId = IDL.Text;
+  const EventType = IDL.Text;
+  const WalletEvent = IDL.Record({
+    'id' : WalletEventId,
+    'organizationId' : OrganizationId,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'description' : IDL.Text,
+    'payload' : IDL.Opt(IDL.Text),
+    'walletId' : WalletId,
+    'eventType' : EventType,
+  });
+  const TransactionId = IDL.Text;
+  const TransactionStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'completed' : IDL.Null,
+    'failed' : IDL.Null,
+  });
+  const TransactionType = IDL.Variant({
+    'deposit' : IDL.Null,
+    'withdrawal' : IDL.Null,
+    'transfer' : IDL.Null,
+  });
+  const WalletTransaction = IDL.Record({
+    'id' : TransactionId,
+    'status' : TransactionStatus,
+    'organizationId' : OrganizationId,
+    'transactionType' : TransactionType,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'updatedAt' : Time,
+    'currency' : CurrencyCode,
+    'amount' : IDL.Nat,
+    'walletId' : WalletId,
+  });
   const StripeConfiguration = IDL.Record({
     'allowedCountries' : IDL.Vec(IDL.Text),
     'secretKey' : IDL.Text,
@@ -591,6 +700,17 @@ export const idlFactory = ({ IDL }) => {
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'getWallet' : IDL.Func([WalletId], [IDL.Opt(Wallet)], ['query']),
+    'getWalletEvent' : IDL.Func(
+        [WalletEventId],
+        [IDL.Opt(WalletEvent)],
+        ['query'],
+      ),
+    'getWalletTransaction' : IDL.Func(
+        [TransactionId],
+        [IDL.Opt(WalletTransaction)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),

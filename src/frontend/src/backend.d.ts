@@ -23,18 +23,12 @@ export interface Payroll {
     employeeId: string;
     bonus: bigint;
 }
-export interface Product {
-    id: string;
-    sku: string;
-    categoryId: string;
+export interface UserProfile {
     name: string;
-    description: string;
-    variants?: Array<string>;
-    stock: bigint;
-    image?: ExternalBlob;
-    price: bigint;
-    digital: boolean;
+    shippingAddress?: string;
+    paymentMethods: Array<string>;
 }
+export type WalletEventId = string;
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -47,16 +41,27 @@ export interface OrderItem {
     quantity: bigint;
     price: bigint;
 }
-export interface Lead {
-    id: string;
-    source?: string;
-    ownerId: Principal;
+export interface WalletTransaction {
+    id: TransactionId;
+    status: TransactionStatus;
+    organizationId: OrganizationId;
+    transactionType: TransactionType;
     createdAt: Time;
-    opportunityId?: string;
-    stage: LeadStage;
-    notes: Array<string>;
-    contactId: string;
-    expectedRevenue?: bigint;
+    createdBy: Principal;
+    updatedAt: Time;
+    currency: CurrencyCode;
+    amount: bigint;
+    walletId: WalletId;
+}
+export interface WalletEvent {
+    id: WalletEventId;
+    organizationId: OrganizationId;
+    createdAt: Time;
+    createdBy: Principal;
+    description: string;
+    payload?: string;
+    walletId: WalletId;
+    eventType: EventType;
 }
 export interface PerformanceRecord {
     id: string;
@@ -71,6 +76,19 @@ export interface PerformanceRecord {
     feedback?: string;
     employeeId: string;
 }
+export interface Wallet {
+    id: WalletId;
+    organizationId: OrganizationId;
+    balance: bigint;
+    name: string;
+    createdAt: Time;
+    createdBy: Principal;
+    description?: string;
+    isActive: boolean;
+    updatedAt: Time;
+    currency: CurrencyCode;
+}
+export type TransactionId = string;
 export interface LeaveRequest {
     id: string;
     status: Variant_pending_approved_rejected;
@@ -80,19 +98,20 @@ export interface LeaveRequest {
     startDate: Time;
     reason: string;
 }
+export interface Lead {
+    id: string;
+    source?: string;
+    ownerId: Principal;
+    createdAt: Time;
+    opportunityId?: string;
+    stage: LeadStage;
+    notes: Array<string>;
+    contactId: string;
+    expectedRevenue?: bigint;
+}
 export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
-}
-export interface Employee {
-    id: string;
-    status: EmployeeStatus;
-    salary: bigint;
-    userId?: Principal;
-    name: string;
-    role: string;
-    joiningDate: Time;
-    departmentId: string;
 }
 export type StripeSessionStatus = {
     __kind__: "completed";
@@ -109,6 +128,16 @@ export type StripeSessionStatus = {
 export interface StripeConfiguration {
     allowedCountries: Array<string>;
     secretKey: string;
+}
+export interface Employee {
+    id: string;
+    status: EmployeeStatus;
+    salary: bigint;
+    userId?: Principal;
+    name: string;
+    role: string;
+    joiningDate: Time;
+    departmentId: string;
 }
 export interface CrmTask {
     id: string;
@@ -177,6 +206,7 @@ export interface Department {
     createdAt: Time;
     managerId?: string;
 }
+export type EventType = string;
 export interface ShoppingItem {
     productName: string;
     currency: string;
@@ -184,7 +214,9 @@ export interface ShoppingItem {
     priceInCents: bigint;
     productDescription: string;
 }
+export type CurrencyCode = string;
 export type OrganizationId = string;
+export type WalletId = string;
 export interface Organization {
     id: OrganizationId;
     name: string;
@@ -195,10 +227,17 @@ export interface Organization {
     updatedAt: Time;
     adminCount: bigint;
 }
-export interface UserProfile {
+export interface Product {
+    id: string;
+    sku: string;
+    categoryId: string;
     name: string;
-    shippingAddress?: string;
-    paymentMethods: Array<string>;
+    description: string;
+    variants?: Array<string>;
+    stock: bigint;
+    image?: ExternalBlob;
+    price: bigint;
+    digital: boolean;
 }
 export enum EmployeeStatus {
     onLeave = "onLeave",
@@ -216,6 +255,16 @@ export enum PerformanceReviewStatus {
     notStarted = "notStarted",
     completed = "completed",
     inProgress = "inProgress"
+}
+export enum TransactionStatus {
+    pending = "pending",
+    completed = "completed",
+    failed = "failed"
+}
+export enum TransactionType {
+    deposit = "deposit",
+    withdrawal = "withdrawal",
+    transfer = "transfer"
 }
 export enum UserRole {
     admin = "admin",
@@ -252,6 +301,9 @@ export interface backendInterface {
     getProduct(_productId: string): Promise<Product | null>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getWallet(_walletId: WalletId): Promise<Wallet | null>;
+    getWalletEvent(_eventId: WalletEventId): Promise<WalletEvent | null>;
+    getWalletTransaction(_transactionId: TransactionId): Promise<WalletTransaction | null>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
