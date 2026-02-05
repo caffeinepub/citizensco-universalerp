@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 27,
-  "summary": "CitizensCo UniversalERP remains a React (Vite) SPA backed by an ICP Motoko canister with Internet Identity auth, server-enforced RBAC, Stripe checkout via IC HTTP outcalls, and in-browser wallet connectors. Recent scope/iterations added Phase 1 multi-organization foundations (Organization entity + memberships + org-scoped roles and an org switcher/admin org management UI), expanded wallet connector support to include both Oisy and Plug with Oisy as the default, and began an incremental effort (Activities 1–2) toward making wallets/transactions fully organization-scoped with safe, stepwise backend changes and migration/compatibility work.",
+  "projectStateVersion": 30,
+  "summary": "CitizensCo UniversalERP continues as a React (Vite) SPA + ICP Motoko canister with Internet Identity auth, server-enforced RBAC, Stripe checkout via IC HTTP outcalls, and in-browser wallet connectors. The project has progressed into multi-tenant work: Phase 1 multi-organization (org entity + memberships) has been initiated/iterated, and ongoing work is focused on making wallets/transactions organization-scoped (org isolation) via incremental backend changes (Activities/Micro-steps) to avoid execution-limit issues. Wallet connector support now includes both Oisy and Plug, with Oisy set as the default.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -306,27 +306,45 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Make wallets, wallet transactions, and wallet events fully organization-scoped with enforced tenant isolation (including safe migration/compatibility steps)",
+      "summary": "Implement true multi-organization (multi-tenant) support end-to-end, starting with org creation + org-scoped users/memberships/roles, then extend isolation across modules",
       "reqIds": [],
       "status": "in_progress"
     },
     {
       "id": "AR-2",
-      "summary": "Allow admins to choose the default wallet connector per organization (e.g., Oisy vs Plug) via an admin setting/prompt",
+      "summary": "Make wallets, transactions, and wallet events organization-scoped (tenant-isolated) and wire frontend to active organization for wallet dashboards/queries",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Support multiple ICP wallet providers: add Plug alongside Oisy (connector + UI)",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "In `backend/main.mo`, implement correct canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) to persist the wallet-domain stable state across upgrades and route it through `Migration.run(...)` during upgrade, while keeping all existing public APIs (RBAC, user profile, organization, Stripe, and all existing method signatures) backward-compatible.",
+      "id": "AR-4",
+      "summary": "Set Oisy as the default wallet provider (auto-select preference) while keeping Plug as an alternative",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Allow admins to choose the default wallet provider per organization (org-level setting)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-4",
-      "summary": "Add/ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state (wallets, walletTransactions, walletEvents) and returns the post-migration wallet-domain state in a forward-compatible structure suitable for subsequent Activity 2 organization-scoping steps.",
+      "id": "AR-7",
+      "summary": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
       "reqIds": [
         "REQ-2"
       ],
@@ -355,7 +373,7 @@
     "Wallet balances/amounts are converted from bigint to JS Number in multiple UI components, risking precision loss for large values.",
     "OrganizationProvider/useListOrganizations are mocked to return [], so organization switching and org-scoped views cannot function end-to-end.",
     "There are two Tailwind variable files (frontend/index.css and frontend/src/index.css) with different palettes, creating ambiguity about which theme variables are intended.",
-    "Wallets/transactions are not yet fully tied to organizations end-to-end; true org-level data isolation for wallet data is still being implemented incrementally."
+    "Platform/build execution often fails when a requested change is interpreted as cross-cutting (wallets+transactions+events+migrations), requiring ultra-small, single-purpose steps to succeed."
   ],
   "isFixRequest": false,
   "gameProjectType": "none",

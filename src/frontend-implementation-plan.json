@@ -1,6 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Activity 2: Frontend impact assessment for wallet-domain upgrade migration",
+  "title": "Activity 2 Next Step: Wallet-domain upgrade migration plumbing (frontend-only scope)",
   "requirements": []
 }

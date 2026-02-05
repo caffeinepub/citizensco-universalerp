@@ -1,23 +1,30 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T02:13:35.809Z",
-  "summary": "REQ-2 is clearly implemented via a new `backend/migration.mo` with a `run(...)` entrypoint that performs a safe identity migration on wallet-domain maps. For REQ-1, the diff shows `backend/main.mo` now imports `Migration`, but the provided truncated diff does not include evidence of `system func preupgrade` / `system func postupgrade` wiring or stable-variable persistence/migration routing, so REQ-1 cannot be confirmed as implemented from the available diff summary.",
+  "generatedAt": "2026-02-05T02:22:20.172Z",
+  "summary": "The diff does not show implementation of canister upgrade plumbing (preupgrade/postupgrade) nor any migration module changes. Only `backend/main.mo` (truncated, showing type/import sections) and `project_state.json` were modified; `backend/migration.mo` was not added or updated.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "In `backend/main.mo`, implement correct canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) to persist the wallet-domain stable state across upgrades and route it through `Migration.run(...)` during upgrade, while keeping all existing public APIs backward-compatible.",
-      "reason": "The diff summary shows `import Migration \"migration\";` but does not show any `system func preupgrade` / `system func postupgrade` implementations, nor evidence of reading/writing wallet-domain stable variables and invoking `Migration.run(preUpgradeState)` in `postupgrade`. Because `backend/main.mo` is truncated, this may exist outside the shown region, but it is not evidenced in the provided diff.",
+      "requirement": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible.",
+      "reason": "The provided `backend/main.mo` diff excerpt does not show any `Migration` import/definition nor `system func postupgrade()` calling `Migration.run({ wallets; walletTransactions; walletEvents })` and reassigning stable vars. With truncation, this might exist elsewhere, but there is no evidence in the shown diff summary.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts `{ wallets; walletTransactions; walletEvents }` and returns a complete migrated wallet-domain state, including a no-op path.",
+      "reason": "No files were added, and `backend/migration.mo` is not listed among modified files, so there is no evidence that `Migration.run(...)` exists/was updated to meet the required interface and behavior.",
+      "evidence": [
+        "<file-diff>: Added: 0, Modified: 2 (backend/main.mo, project_state.json)"
       ]
     }
   ],
   "hallucinated_features": [],
-  "confidence": 0.62,
+  "confidence": 0.74,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "project_state.json"
   ]
 }

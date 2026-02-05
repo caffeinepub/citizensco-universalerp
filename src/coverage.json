@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T02:13:35.812Z",
+  "generatedAt": "2026-02-05T02:22:20.175Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,14 +12,14 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In `backend/main.mo`, implement correct canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) to persist the wallet-domain stable state across upgrades and route it through `Migration.run(...)` during upgrade, while keeping all existing public APIs (RBAC, user profile, organization, Stripe, and all existing method signatures) backward-compatible.",
+        "summary": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add/ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state (wallets, walletTransactions, walletEvents) and returns the post-migration wallet-domain state in a forward-compatible structure suitable for subsequent Activity 2 organization-scoping steps.",
+        "summary": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
@@ -28,7 +28,6 @@
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-implementation-plan.json",

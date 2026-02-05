@@ -1,54 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Activity 2: Implement backend canister upgrade migration plumbing for wallet-domain state",
+  "title": "Activity 2 Next Step: Implement wallet-domain upgrade migration plumbing (preupgrade/postupgrade + migration.run)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In `backend/main.mo`, implement correct canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) to persist the wallet-domain stable state across upgrades and route it through `Migration.run(...)` during upgrade, while keeping all existing public APIs (RBAC, user profile, organization, Stripe, and all existing method signatures) backward-compatible.",
+      "text": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-3"
         ],
         "quotes": [
-          "Yes to the next step of Activity 2"
+          "Yes to next step of Activity 2"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/main.mo` compiles successfully and includes the required `Migration` module reference/import used by `postupgrade`.",
-        "On upgrade, wallet-domain stable variables are migrated by calling `Migration.run(preUpgradeState)` and writing the returned state back into the stable variables.",
-        "No unrelated public methods (e.g., `getCallerUserProfile`, `saveCallerUserProfile`, `getOrganization`, Stripe endpoints) have breaking signature changes."
+        "`backend/main.mo` compiles without unresolved references (e.g., `Migration` is properly imported/defined).",
+        "On upgrade, the canister calls `Migration.run({ wallets; walletTransactions; walletEvents })` and assigns the returned state back to the stable vars.",
+        "All existing public methods keep the same names and signatures as before this change."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add/ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state (wallets, walletTransactions, walletEvents) and returns the post-migration wallet-domain state in a forward-compatible structure suitable for subsequent Activity 2 organization-scoping steps.",
+      "text": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-3"
         ],
         "quotes": [
-          "Yes to the next step of Activity 2"
+          "Yes to next step of Activity 2"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/migration.mo` is present at exactly `backend/migration.mo` and exports `run(...)`.",
-        "`run(...)` typechecks against the state shape used by `backend/main.mo` during `postupgrade`.",
-        "The migration implementation is safe to run multiple times without trapping (idempotent or otherwise backward-safe for repeated upgrades)."
+        "`backend/migration.mo` exists and can be imported from `backend/main.mo`.",
+        "`Migration.run(...)` is a pure migration function that returns a complete wallet-domain state object containing `wallets`, `walletTransactions`, and `walletEvents`.",
+        "A no-op migration path is supported (i.e., an upgrade where no structural changes are needed keeps existing wallet data intact)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor; keep all business logic in `backend/main.mo` (use `backend/migration.mo` only for migration logic).",
-    "Do not introduce additional backend services or external databases.",
+    "Backend must remain a single-actor architecture with all Motoko logic in `backend/main.mo` (aside from the dedicated migration module in `backend/migration.mo`).",
+    "Generate/modify `backend/migration.mo` only as needed for upgrading existing stable state (conditional migration policy).",
     "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing full CRUD APIs for wallets/transactions/events beyond what is required for upgrade persistence/migration.",
-    "Implementing organization listing/membership APIs or wiring the frontend organization switcher end-to-end.",
-    "Fixing existing Stripe request body encoding issues unless directly required by the migration work."
+    "Do not implement additional wallet CRUD/list APIs or frontend wiring as part of this step.",
+    "Do not change UI styling or introduce new UI features in this step.",
+    "Do not introduce new backend services, external databases, or non-Motoko backend code."
   ],
   "imageRequirements": {
     "required": [],

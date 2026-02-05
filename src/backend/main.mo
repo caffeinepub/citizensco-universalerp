@@ -13,7 +13,6 @@ import AccessControl "authorization/access-control";
 import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
-import Migration "migration";
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -706,20 +705,5 @@ actor {
 
   public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     OutCall.transform(input);
-  };
-
-  system func preupgrade() {
-    // Wallet domain state is already marked stable, no action needed
-  };
-
-  system func postupgrade() {
-    let migratedState = Migration.run({
-      wallets = wallets;
-      walletTransactions = walletTransactions;
-      walletEvents = walletEvents;
-    });
-    wallets := migratedState.wallets;
-    walletTransactions := migratedState.walletTransactions;
-    walletEvents := migratedState.walletEvents;
   };
 };
