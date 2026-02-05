@@ -7,21 +7,20 @@ import Nat "mo:core/Nat";
 import Runtime "mo:core/Runtime";
 import OutCall "http-outcalls/outcall";
 import Stripe "stripe/stripe";
-import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
-import MixinAuthorization "authorization/MixinAuthorization";
+import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
-import MixinStorage "blob-storage/Mixin";
 import Iter "mo:core/Iter";
+import MixinAuthorization "authorization/MixinAuthorization";
+import MixinStorage "blob-storage/Mixin";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
 
-  // Internal Type Definitions (Candid-stable, canonicalized, explicit types)
-
-  // Organization
   public type OrganizationId = Text;
 
   public type Organization = {
@@ -48,7 +47,6 @@ actor {
     joinedAt : Time.Time;
   };
 
-  // Product Types
   public type Product = {
     id : Text;
     name : Text;
@@ -85,14 +83,12 @@ actor {
     createdAt : Time.Time;
   };
 
-  // User Profile
   public type UserProfile = {
     name : Text;
     shippingAddress : ?Text;
     paymentMethods : [Text];
   };
 
-  // CRM Types
   public type Contact = {
     id : Text;
     name : Text;
@@ -156,7 +152,6 @@ actor {
     #completed;
   };
 
-  // HRMS Types
   public type EmployeeStatus = {
     #active;
     #inactive;
@@ -225,14 +220,8 @@ actor {
     createdAt : Time.Time;
   };
 
-  // Accounting (no persistent state currently)
-  public type AccountingData = {
-    // placeholder for future accounting fields
-  };
+  public type AccountingData = {};
 
-  // Wallet Types
-
-  // Wallet Record
   public type WalletId = Text;
   public type CurrencyCode = Text;
 
@@ -249,7 +238,6 @@ actor {
     isActive : Bool;
   };
 
-  // Wallet Transaction Record
   public type TransactionId = Text;
 
   public type TransactionType = {
@@ -277,7 +265,6 @@ actor {
     updatedAt : Time.Time;
   };
 
-  // Wallet Event Log Record
   public type WalletEventId = Text;
   public type EventType = Text;
 
@@ -311,7 +298,6 @@ actor {
 
   var stripeConfig : ?Stripe.StripeConfiguration = null;
 
-  // Helper function to check organization membership
   private func isOrganizationMember(caller : Principal, orgId : Text) : Bool {
     switch (organizationMembers.get(orgId)) {
       case null { false };
@@ -325,7 +311,6 @@ actor {
     };
   };
 
-  // Helper function to check if caller is organization admin
   private func isOrganizationAdmin(caller : Principal, orgId : Text) : Bool {
     switch (organizationMembers.get(orgId)) {
       case null { false };
@@ -341,7 +326,6 @@ actor {
     };
   };
 
-  // Helper function to get employee by userId
   private func getEmployeeByUserId(userId : Principal) : ?Employee {
     for ((_, emp) in employees.entries()) {
       switch (emp.userId) {
@@ -356,7 +340,6 @@ actor {
     null;
   };
 
-  // User Profile Functions (Required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -381,28 +364,23 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Organization Functions
   public query ({ caller }) func getOrganization(_orgId : Text) : async ?Organization {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get organizations");
     };
-    // Verify caller is a member of the organization or is an admin
     if (not isOrganizationMember(caller, _orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: You must be a member of this organization");
     };
     organizations.get(_orgId);
   };
 
-  // Product Functions (E-commerce)
   public query ({ caller }) func getProduct(_productId : Text) : async ?Product {
-    // Products can be viewed by any authenticated user (public catalog)
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get products");
     };
     products.get(_productId);
   };
 
-  // Order Functions
   public query ({ caller }) func getOrder(_orderId : Text) : async ?Order {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get orders");
@@ -410,7 +388,6 @@ actor {
     switch (orders.get(_orderId)) {
       case null { null };
       case (?order) {
-        // Users can only view their own orders, admins can view all
         if (caller.notEqual(order.userId) and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You can only view your own orders");
         };
@@ -419,7 +396,6 @@ actor {
     };
   };
 
-  // CRM Functions
   public query ({ caller }) func getContact(_contactId : Text) : async ?Contact {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get contacts");
@@ -427,7 +403,6 @@ actor {
     switch (contacts.get(_contactId)) {
       case null { null };
       case (?contact) {
-        // Users can only view their own contacts, admins can view all
         if (caller.notEqual(contact.ownerId) and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You can only view your own contacts");
         };
@@ -443,7 +418,6 @@ actor {
     switch (leads.get(_leadId)) {
       case null { null };
       case (?lead) {
-        // Users can only view their own leads, admins can view all
         if (caller.notEqual(lead.ownerId) and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You can only view your own leads");
         };
@@ -459,7 +433,6 @@ actor {
     switch (opportunities.get(_opportunityId)) {
       case null { null };
       case (?opportunity) {
-        // Users can only view their own opportunities, admins can view all
         if (caller.notEqual(opportunity.ownerId) and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You can only view your own opportunities");
         };
@@ -475,7 +448,6 @@ actor {
     switch (crmTasks.get(_taskId)) {
       case null { null };
       case (?task) {
-        // Users can only view tasks assigned to them, admins can view all
         if (caller.notEqual(task.assignedTo) and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: You can only view tasks assigned to you");
         };
@@ -484,7 +456,6 @@ actor {
     };
   };
 
-  // HRMS Functions
   public query ({ caller }) func getEmployee(_employeeId : Text) : async ?Employee {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get employees");
@@ -492,7 +463,6 @@ actor {
     switch (employees.get(_employeeId)) {
       case null { null };
       case (?employee) {
-        // Users can view their own employee record, admins and managers can view all
         let isOwnRecord = switch (employee.userId) {
           case (?uid) { Principal.equal(caller, uid) };
           case null { false };
@@ -509,7 +479,6 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get departments");
     };
-    // All authenticated users can view department information
     departments.get(_departmentId);
   };
 
@@ -520,7 +489,6 @@ actor {
     switch (attendanceRecords.get(_attendanceId)) {
       case null { null };
       case (?attendance) {
-        // Users can only view their own attendance, admins can view all
         switch (employees.get(attendance.employeeId)) {
           case null { null };
           case (?employee) {
@@ -545,7 +513,6 @@ actor {
     switch (leaveRequests.get(_leaveId)) {
       case null { null };
       case (?leave) {
-        // Users can only view their own leave requests, admins can view all
         switch (employees.get(leave.employeeId)) {
           case null { null };
           case (?employee) {
@@ -570,7 +537,6 @@ actor {
     switch (payrolls.get(_payrollId)) {
       case null { null };
       case (?payroll) {
-        // Users can only view their own payroll, admins can view all
         switch (employees.get(payroll.employeeId)) {
           case null { null };
           case (?employee) {
@@ -595,7 +561,6 @@ actor {
     switch (performanceRecords.get(_recordId)) {
       case null { null };
       case (?record) {
-        // Users can only view their own performance records, admins can view all
         switch (employees.get(record.employeeId)) {
           case null { null };
           case (?employee) {
@@ -613,7 +578,6 @@ actor {
     };
   };
 
-  // Stripe Integration
   public query func isStripeConfigured() : async Bool {
     stripeConfig != null;
   };

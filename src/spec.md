@@ -1,10 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Add missing internal Motoko type definitions for organization-scoped wallet domain entities in `backend/main.mo`.
+**Goal:** Add a minimal, compile-safe canister upgrade migration scaffold to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures.
 
 **Planned changes:**
-- Define Candid-friendly internal types for wallet entities (wallets, wallet transactions, wallet events) in `backend/main.mo`.
-- Ensure each new wallet-related type includes `organizationId : OrganizationId` and matches the explicit, canonical style of existing type definitions.
+- Add a new Motoko module at `backend/migration.mo` exporting a stable `run(...)` entrypoint for upgrade migrations, initially implemented as a safe no-op/pass-through.
+- Update `backend/main.mo` to include minimal stable upgrade hooks/plumbing that persists wallet-domain state across upgrades and invokes `migration.run(...)` during the upgrade flow.
+- Persist the post-migration (organization-scoped) wallet-domain state after upgrade without changing unrelated public APIs or breaking existing behavior.
 
-**User-visible outcome:** No user-facing changes; the backend compiles with the new wallet domain types available for later development.
+**User-visible outcome:** Canister upgrades preserve wallet-domain state and execute a migration step (currently a safe no-op) without changing existing app functionality or public method signatures.

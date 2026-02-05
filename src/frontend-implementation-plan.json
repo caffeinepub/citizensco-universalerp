@@ -1,6 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend plan (no changes): internal Motoko wallet type definitions",
+  "title": "Activity 2 migration plumbing (frontend-only scope)",
   "requirements": []
 }

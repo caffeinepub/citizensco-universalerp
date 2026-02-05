@@ -1,36 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Add internal Motoko type definitions (wallets/transactions/events, org-scoped)",
+  "title": "Activity 2: Add upgrade migration plumbing for organization-scoped wallet domain state",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In `backend/main.mo`, add the missing internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, and wallet events). The types must be Candid-friendly and follow the same explicit, canonical style as existing types (e.g., `Organization`, `Order`, CRM/HRMS records). Ensure the new wallet-related types include `organizationId : OrganizationId` so they can support multi-tenant isolation in later steps.",
+      "text": "Create a new Motoko module at `backend/migration.mo` that exports a `run(...)` entrypoint for canister upgrade migrations, structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures; the initial implementation may be a no-op/pass-through but must compile and keep its public API stable for future Activity 2 steps.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "proceed with adding just the internal Motoko type definitions as the next small step"
+          "Yes to the next step of Activity 2"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/main.mo` compiles successfully with no changes required to frontend code.",
-        "New wallet domain types (wallet, transaction, event) are present and include an `organizationId : OrganizationId` field.",
-        "The added types are usable in Candid (i.e., only Candid-compatible fields/variants) and match the existing style of type definitions in `backend/main.mo`."
+        "`backend/migration.mo` exists and compiles.",
+        "`backend/migration.mo` exports `run(...)` and its implementation currently performs a safe no-op/pass-through migration (no traps).",
+        "The module is structured so future steps can add real transformation logic without changing the `run(...)` function signature."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Wire the Activity 2 migration scaffold into `backend/main.mo` canister upgrade lifecycle by adding minimal stable upgrade plumbing that (a) persists the wallet-domain state across upgrades, (b) passes the pre-upgrade (legacy) wallet-domain state into `migration.run(...)` during upgrade, and (c) persists the post-migration organization-scoped wallet-domain state after upgrade, without breaking existing canister behavior or changing existing public APIs unrelated to the migration.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Yes to the next step of Activity 2"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`backend/main.mo` compiles after adding upgrade hooks/plumbing.",
+        "A canister upgrade does not lose wallet-domain state that is included in the new stable upgrade payload.",
+        "`migration.run(...)` is invoked as part of the upgrade flow and its output is what gets persisted post-upgrade.",
+        "Existing public methods in `backend/main.mo` (e.g., profile/org/Stripe methods) remain available with unchanged signatures and continue to behave as before."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain single-actor; keep all Motoko logic and type definitions in `backend/main.mo`.",
-    "Do not add or change persistence stores, APIs, or frontend wiring in this step—types only.",
-    "Do not introduce a migration unless a state schema upgrade is actually performed (this step should not require migration)."
+    "Backend must remain a single-actor Motoko canister; keep all core logic in `backend/main.mo`.",
+    "Do not change or remove existing public APIs unrelated to the migration wiring.",
+    "Generate/modify `backend/migration.mo` only as needed for upgrade/migration; keep the migration policy conditional (only introduce transformation logic when required).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing wallet/transaction/event storage (Maps) or CRUD/query methods.",
-    "Adding or modifying React Query hooks (`frontend/src/hooks/useQueries.ts`) or any UI components.",
-    "Completing end-to-end multi-organization isolation across modules."
+    "Implementing full wallet/transaction/event CRUD APIs.",
+    "Implementing frontend wiring for organization-scoped wallets/transactions/events.",
+    "Fixing unrelated known issues (e.g., Stripe form encoding or React Query placeholder hooks) unless directly required to compile the migration wiring."
   ],
   "imageRequirements": {
     "required": [],

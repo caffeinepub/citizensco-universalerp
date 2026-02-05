@@ -1,30 +1,46 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T11:28:30.333Z",
-  "summary": "REQ-1 cannot be verified from the provided diff excerpt because the `backend/main.mo` content is truncated and the visible portion does not show any wallet/transaction/event type definitions. Additionally, `project_state.json` was modified even though the BuildRequest explicitly constrained this step to be “types only” in `backend/main.mo`.",
+  "generatedAt": "2026-02-05T00:12:59.012Z",
+  "summary": "REQ-1 is partially met: `backend/migration.mo` was added and exports a no-op `run(...)`, but it is not clearly structured around migrating legacy wallet-domain state into organization-scoped wallet-domain structures. REQ-2 is not evidenced in the provided `backend/main.mo` diff: there are no visible stable upgrade hooks/persistence wiring or invocation of `migration.run(...)` as part of pre/post-upgrade state handling.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "In `backend/main.mo`, add internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, wallet events), Candid-friendly, in the existing canonical style, and including `organizationId : OrganizationId`.",
-      "reason": "The visible portion of the truncated `backend/main.mo` diff shows organization/product/CRM/HRMS types but does not show any wallet-related types (wallet/transaction/event), so implementation cannot be confirmed from the provided evidence.",
+      "requirement": "`backend/migration.mo` `run(...)` should be structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into current organization-scoped wallet-domain structures, while keeping a stable signature for future transformation logic.",
+      "reason": "The added module defines only `Organization` and an `Actor` containing `organizations`, with `run(old : Actor) : Actor` simply returning `old`. There is no evidence of wallet-domain state types (legacy or org-scoped) or migration scaffolding around wallet-domain structures.",
       "evidence": [
-        "backend/main.mo (truncated diff excerpt shows no wallet-related types)"
+        "backend/migration.mo"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Add stable upgrade plumbing in `backend/main.mo` to persist wallet-domain state across upgrades, pass pre-upgrade (legacy) wallet-domain state into `migration.run(...)`, and persist the post-migration org-scoped wallet-domain state after upgrade, without breaking existing public APIs.",
+      "reason": "The diff shows `import Migration \"migration\";` and a `(with migration = Migration.run)` line, but no visible `system func preupgrade`/`postupgrade`, no stable variables for wallet-domain state, and no evidence that `migration.run(...)` is invoked during upgrade with its output persisted.",
+      "evidence": [
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Modified `project_state.json` despite the request to limit this step to Motoko type definitions only and to keep all changes in `backend/main.mo`.",
-      "reason": "BuildRequest constraints say “types only” and “keep all Motoko logic and type definitions in `backend/main.mo`” with no other wiring/changes; editing `project_state.json` is outside that scope.",
+      "description": "Migration module defines `Organization` and `Actor.organizations` map as the migration input/output schema.",
+      "reason": "The BuildRequest is specifically about migrating wallet-domain state (legacy to organization-scoped wallet-domain structures). The diff adds organization-centric types in `backend/migration.mo` with no shown wallet-domain linkage.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    },
+    {
+      "description": "`project_state.json` updated to describe expanded multi-tenant scope, wallet connector plans, and other product narrative details.",
+      "reason": "The BuildRequest only asked for backend migration scaffolding and wiring; updating project summary/state is not requested.",
       "evidence": [
         "project_state.json"
       ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.68,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "project_state.json"
   ]
 }

@@ -1,18 +1,25 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T11:28:30.352Z",
+  "generatedAt": "2026-02-05T00:12:59.015Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
+    "total": 2,
     "implemented": 0,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In `backend/main.mo`, add the missing internal Motoko type definitions for organization-scoped wallet domain entities (wallets, wallet transactions, and wallet events). The types must be Candid-friendly and follow the same explicit, canonical style as existing types (e.g., `Organization`, `Order`, CRM/HRMS records). Ensure the new wallet-related types include `organizationId : OrganizationId` so they can support multi-tenant isolation in later steps.",
+        "summary": "Create a new Motoko module at `backend/migration.mo` that exports a `run(...)` entrypoint for canister upgrade migrations, structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures; the initial implementation may be a no-op/pass-through but must compile and keep its public API stable for future Activity 2 steps.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Wire the Activity 2 migration scaffold into `backend/main.mo` canister upgrade lifecycle by adding minimal stable upgrade plumbing that (a) persists the wallet-domain state across upgrades, (b) passes the pre-upgrade (legacy) wallet-domain state into `migration.run(...)` during upgrade, and (c) persists the post-migration organization-scoped wallet-domain state after upgrade, without breaking existing canister behavior or changing existing public APIs unrelated to the migration.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
@@ -21,6 +28,7 @@
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-implementation-plan.json",
