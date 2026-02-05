@@ -1,24 +1,24 @@
 {
   "kind": "build_request",
-  "title": "Activity 2: Wire wallet-domain migration scaffold into canister upgrade lifecycle",
+  "title": "Activity 2: Add upgrade-safe, migration-driven persistence for wallet-domain state",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement the next step of Activity 2 by wiring upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state can be persisted across canister upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking existing public APIs unrelated to migration.",
+      "text": "In `backend/main.mo`, implement canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) so that wallet-domain state is persisted across upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking any existing public APIs unrelated to migration (e.g., RBAC, user profile, organization, Stripe endpoints must remain compatible).",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "Yes to the next step of Activity 2"
+          "Yes to next step of Activity 2"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/main.mo` defines `system preupgrade` and `system postupgrade` hooks (or equivalent upgrade wiring supported by the project) that persist and restore wallet-domain state.",
-        "During `postupgrade`, the code calls `migration.run(...)` and uses its output as the post-migration wallet-domain state (even if the state is currently empty/no-op).",
-        "Existing non-migration public methods keep the same signatures and continue to compile and deploy."
+        "`backend/main.mo` defines stable storage for the wallet-domain state that is written in `preupgrade` and restored in `postupgrade`.",
+        "`postupgrade` invokes `migration.run(...)` to convert pre-upgrade wallet-domain state into the current wallet-domain state shape.",
+        "All existing public methods in `backend/main.mo` unrelated to migration still compile and behave as before (no signature changes, no removed endpoints)."
       ]
     },
     {
@@ -30,24 +30,25 @@
           "msg-4"
         ],
         "quotes": [
-          "Yes to the next step of Activity 2"
+          "Yes to next step of Activity 2"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/migration.mo` compiles and exports `run(...)` with a stable signature intended for future Activity 2 migration steps.",
-        "`backend/main.mo` imports and invokes `migration.run(...)` during upgrade restoration.",
-        "A canister upgrade path exists where wallet-domain state is round-tripped through stable memory (preupgrade -> migration.run -> postupgrade) without trapping."
+        "`backend/migration.mo` exports `run(...)` and the project compiles with `backend/main.mo` calling it during upgrade restoration.",
+        "`run(...)` is safe to execute on both (a) empty/fresh state and (b) existing state, producing a valid post-migration wallet-domain state in both cases.",
+        "The migration interface is version-tolerant/forward-compatible (e.g., includes explicit versioning or a structure that can be extended in later Activity 2 steps without breaking the upgrade path)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor architecture with all Motoko logic living in `backend/main.mo` (except the migration helper module in `backend/migration.mo`).",
-    "Do not introduce additional backend services, databases, or external persistence.",
-    "Do not modify frontend immutable paths listed in SYSTEM_CONTEXT."
+    "Backend must remain a single Motoko actor with all logic in `backend/main.mo`.",
+    "Do not change or break existing public APIs unrelated to migration (RBAC, profile, organization, Stripe).",
+    "Only introduce or modify `backend/migration.mo` if required for upgrade compatibility."
   ],
   "nonGoals": [
-    "Implementing full wallet/transaction CRUD APIs or frontend wallet/transaction UI wiring in this step (only upgrade/migration plumbing).",
-    "Changing existing public APIs unrelated to canister upgrade migration."
+    "Implementing full wallet/transaction CRUD APIs or wiring wallet UI to real backend data (beyond what is required to persist/migrate wallet-domain state).",
+    "Adding new third-party services, databases, or backend microservices.",
+    "Changing any files under frontend immutable paths listed in SYSTEM_CONTEXT."
   ],
   "imageRequirements": {
     "required": [],

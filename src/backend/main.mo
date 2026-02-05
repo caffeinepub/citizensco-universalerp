@@ -15,7 +15,6 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Migration "migration";
 
-(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -296,6 +295,10 @@ actor {
   let payrolls = Map.empty<Text, Payroll>();
   let performanceRecords = Map.empty<Text, PerformanceRecord>();
 
+  stable var wallets = Map.empty<WalletId, Wallet>();
+  stable var walletTransactions = Map.empty<TransactionId, WalletTransaction>();
+  stable var walletEvents = Map.empty<WalletEventId, WalletEvent>();
+
   var stripeConfig : ?Stripe.StripeConfiguration = null;
 
   private func isOrganizationMember(caller : Principal, orgId : Text) : Bool {
@@ -338,6 +341,32 @@ actor {
       };
     };
     null;
+  };
+
+  private func getDepartmentOrganizationId(departmentId : Text) : ?OrganizationId {
+    switch (departments.get(departmentId)) {
+      case null { null };
+      case (?dept) {
+        for ((_, emp) in employees.entries()) {
+          if (emp.departmentId == departmentId) {
+            for ((orgId, members) in organizationMembers.entries()) {
+              let isMember = members.any(
+                func(m : OrganizationMember) : Bool {
+                  switch (emp.userId) {
+                    case (?uid) { Principal.equal(m.userId, uid) };
+                    case null { false };
+                  };
+                },
+              );
+              if (isMember) {
+                return ?orgId;
+              };
+            };
+          };
+        };
+        null;
+      };
+    };
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -479,6 +508,20 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get departments");
     };
+    
+    switch (getDepartmentOrganizationId(_departmentId)) {
+      case null {
+        if (not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the department's organization or an admin");
+        };
+      };
+      case (?orgId) {
+        if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the department's organization");
+        };
+      };
+    };
+    
     departments.get(_departmentId);
   };
 
@@ -612,5 +655,23 @@ actor {
 
   public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     OutCall.transform(input);
+  };
+
+  system func preupgrade() {
+    // Wallet domain state is already stable, no action needed
+  };
+
+  system func postupgrade() {
+    let legacyState = {
+      wallets = wallets;
+      walletTransactions = walletTransactions;
+      walletEvents = walletEvents;
+    };
+    
+    let migratedState = Migration.run(legacyState);
+    
+    wallets := migratedState.wallets;
+    walletTransactions := migratedState.walletTransactions;
+    walletEvents := migratedState.walletEvents;
   };
 };

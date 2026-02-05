@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T01:36:23.135Z",
+  "generatedAt": "2026-02-05T02:02:58.127Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,7 +12,7 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement the next step of Activity 2 by wiring upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state can be persisted across canister upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking existing public APIs unrelated to migration.",
+        "summary": "In `backend/main.mo`, implement canister upgrade lifecycle plumbing (`system func preupgrade` / `system func postupgrade`) so that wallet-domain state is persisted across upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking any existing public APIs unrelated to migration (e.g., RBAC, user profile, organization, Stripe endpoints must remain compatible).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
