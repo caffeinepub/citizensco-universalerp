@@ -1,5 +1,7 @@
 import Map "mo:core/Map";
+import Principal "mo:core/Principal";
 import List "mo:core/List";
+import Iter "mo:core/Iter";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
 import Array "mo:core/Array";
@@ -8,9 +10,7 @@ import Runtime "mo:core/Runtime";
 import OutCall "http-outcalls/outcall";
 import Stripe "stripe/stripe";
 import AccessControl "authorization/access-control";
-import Principal "mo:core/Principal";
 import Storage "blob-storage/Storage";
-import Iter "mo:core/Iter";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Migration "migration";
@@ -596,11 +596,17 @@ actor {
     };
   };
 
-  public func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+  public shared ({ caller }) func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can check session status");
+    };
     await Stripe.getSessionStatus(getStripeConfiguration(), sessionId, transform);
   };
 
   public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create checkout sessions");
+    };
     await Stripe.createCheckoutSession(getStripeConfiguration(), caller, items, successUrl, cancelUrl, transform);
   };
 

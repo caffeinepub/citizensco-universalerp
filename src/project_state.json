@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 9,
-  "summary": "CitizensCo UniversalERP remains a React (Vite) SPA backed by an ICP Motoko canister with Internet Identity auth, server-enforced RBAC, Stripe checkout via IC HTTP outcalls, and in-browser ICP wallet connectors. Scope has expanded to true multi-tenant (multi-organization) support: Phase 1 (organization creation + org-scoped memberships/users) has been initiated/implemented, and work is now progressing toward org-scoping wallets/transactions/events so all ERP modules can be safely isolated per organization. Wallet connectivity is being extended to support both Oisy (default) and Plug, with planned per-organization default-wallet configuration; additional alternative payment methods beyond Stripe are also planned.",
+  "projectStateVersion": 18,
+  "summary": "CitizensCo UniversalERP is a React (Vite) SPA backed by an ICP Motoko canister with Internet Identity auth, server-enforced RBAC, Stripe checkout via IC HTTP outcalls, and in-browser wallet connectors (Oisy default, Plug supported). The project has begun true multi-organization support (organizations + org-scoped memberships/roles) and is actively working through an incremental rollout to make wallets/transactions organization-scoped with safe, stepwise migration/compatibility changes. Most ERP modules beyond auth/profile/orgs/Stripe/wallet-connector scaffolding remain largely UI shells pending backend CRUD implementations and full tenant isolation across all domains.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -263,56 +263,64 @@
       "description": "Provides a build-template workspace (frontend/backend configs, scripts, and dependencies) to bootstrap, build, and deploy the UniversalERP stack in a repeatable way.",
       "reqIds": [],
       "version": 1
+    },
+    {
+      "id": "IF-22",
+      "title": "Enhanced build-template: shadcn/ui component suite + custom ESLint guardrails",
+      "synonyms": [
+        "template shadcn/ui primitives",
+        "template eslint rules",
+        "no-bigint-in-query-keys",
+        "require-internet-identity-provider"
+      ],
+      "description": "Build-template expanded to include a broad set of shadcn/ui-style primitives and project-specific ESLint rules to enforce provider wiring and prevent problematic patterns (e.g., BigInt in React Query keys) when bootstrapping new apps.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-23",
+      "title": "Enhanced build-template: Docker/deploy assets and auxiliary build scripts",
+      "synonyms": [
+        "Dockerfile",
+        "deploy.sh",
+        "icp.yaml",
+        "image prune/resize scripts"
+      ],
+      "description": "Build-template includes Docker/deploy assets and helper scripts (e.g., prune-unused-images, resize-images) to support repeatable build and deployment workflows.",
+      "reqIds": [],
+      "version": 1
     }
   ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement true multi-organization (multi-tenant) support: organizations, memberships, org-scoped roles, and admin management UI (Phase 1 foundation).",
+      "summary": "Make wallets, transactions, and wallet events fully organization-scoped (tenant isolation) end-to-end, including backend enforcement, safe migration/compatibility, and frontend active-org wiring.",
       "reqIds": [],
       "status": "in_progress"
     },
     {
       "id": "AR-2",
-      "summary": "Make wallets/transactions/events organization-scoped (tenant isolation), including backend storage + migration/compatibility + frontend wiring to active organization and UI updates (phased micro-steps).",
+      "summary": "Add two alternative payment methods beyond Stripe: ICP-native payments and manual/bank-transfer (offline-verified) payments, integrated into checkout and the wallet/transaction system.",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Support multiple wallet connectors including Oisy and Plug, with Oisy as default.",
+      "summary": "Allow admins to configure the default wallet connector per organization (Oisy/Plug), overriding the global default.",
       "reqIds": [],
-      "status": "in_progress"
+      "status": "pending"
     },
     {
       "id": "AR-4",
-      "summary": "Allow admins to configure/select the default wallet connector per organization.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Enable real transaction tracking and live wallet balance updates across dashboards (permission-aware).",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Add two additional alternative payment methods beyond Stripe (e.g., ICP native payments and manual/bank transfer) with documented strengths/weaknesses and unified transaction handling.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Create a new Motoko module at `backend/migration.mo` that exports a `run(...)` entrypoint for canister upgrade migrations, structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures; the initial implementation may be a no-op/pass-through but must compile and keep its public API stable for future Activity 2 steps.",
+      "summary": "Implement the next step of Activity 2 by wiring upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state can be persisted across canister upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking existing public APIs unrelated to migration.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-8",
-      "summary": "Wire the Activity 2 migration scaffold into `backend/main.mo` canister upgrade lifecycle by adding minimal stable upgrade plumbing that (a) persists the wallet-domain state across upgrades, (b) passes the pre-upgrade (legacy) wallet-domain state into `migration.run(...)` during upgrade, and (c) persists the post-migration organization-scoped wallet-domain state after upgrade, without breaking existing canister behavior or changing existing public APIs unrelated to the migration.",
+      "id": "AR-5",
+      "summary": "Ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint used by `backend/main.mo` during upgrades, where `run(...)` accepts the pre-upgrade (legacy) wallet-domain state and returns the post-migration (organization-scoped) wallet-domain state in a way that is forward-compatible for subsequent Activity 2 steps.",
       "reqIds": [
         "REQ-2"
       ],
@@ -341,7 +349,7 @@
     "Wallet balances/amounts are converted from bigint to JS Number in multiple UI components, risking precision loss for large values.",
     "OrganizationProvider/useListOrganizations are mocked to return [], so organization switching and org-scoped views cannot function end-to-end.",
     "There are two Tailwind variable files (frontend/index.css and frontend/src/index.css) with different palettes, creating ambiguity about which theme variables are intended.",
-    "Multi-organization is not yet fully end-to-end: org-scoped tenant isolation is incomplete until wallets/transactions/events (and later ERP domain entities) are scoped and enforced per organization."
+    "Multi-organization is not yet end-to-end: wallets/transactions/events are still not confirmed as organization-scoped and tenant-isolated across all modules (work in progress)."
   ],
   "isFixRequest": false,
   "gameProjectType": "none",

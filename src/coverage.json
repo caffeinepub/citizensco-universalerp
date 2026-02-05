@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T00:12:59.015Z",
+  "generatedAt": "2026-02-05T01:36:23.135Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,14 +12,14 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Create a new Motoko module at `backend/migration.mo` that exports a `run(...)` entrypoint for canister upgrade migrations, structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures; the initial implementation may be a no-op/pass-through but must compile and keep its public API stable for future Activity 2 steps.",
+        "summary": "Implement the next step of Activity 2 by wiring upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state can be persisted across canister upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking existing public APIs unrelated to migration.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Wire the Activity 2 migration scaffold into `backend/main.mo` canister upgrade lifecycle by adding minimal stable upgrade plumbing that (a) persists the wallet-domain state across upgrades, (b) passes the pre-upgrade (legacy) wallet-domain state into `migration.run(...)` during upgrade, and (c) persists the post-migration organization-scoped wallet-domain state after upgrade, without breaking existing canister behavior or changing existing public APIs unrelated to the migration.",
+        "summary": "Ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint used by `backend/main.mo` during upgrades, where `run(...)` accepts the pre-upgrade (legacy) wallet-domain state and returns the post-migration (organization-scoped) wallet-domain state in a way that is forward-compatible for subsequent Activity 2 steps.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []

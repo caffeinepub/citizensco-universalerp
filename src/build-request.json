@@ -1,11 +1,11 @@
 {
   "kind": "build_request",
-  "title": "Activity 2: Add upgrade migration plumbing for organization-scoped wallet domain state",
+  "title": "Activity 2: Wire wallet-domain migration scaffold into canister upgrade lifecycle",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Create a new Motoko module at `backend/migration.mo` that exports a `run(...)` entrypoint for canister upgrade migrations, structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures; the initial implementation may be a no-op/pass-through but must compile and keep its public API stable for future Activity 2 steps.",
+      "text": "Implement the next step of Activity 2 by wiring upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state can be persisted across canister upgrades and routed through `migration.run(...)` during upgrade, without changing or breaking existing public APIs unrelated to migration.",
       "target": "backend",
       "source": {
         "messageIds": [
@@ -16,14 +16,14 @@
         ]
       },
       "acceptanceCriteria": [
-        "`backend/migration.mo` exists and compiles.",
-        "`backend/migration.mo` exports `run(...)` and its implementation currently performs a safe no-op/pass-through migration (no traps).",
-        "The module is structured so future steps can add real transformation logic without changing the `run(...)` function signature."
+        "`backend/main.mo` defines `system preupgrade` and `system postupgrade` hooks (or equivalent upgrade wiring supported by the project) that persist and restore wallet-domain state.",
+        "During `postupgrade`, the code calls `migration.run(...)` and uses its output as the post-migration wallet-domain state (even if the state is currently empty/no-op).",
+        "Existing non-migration public methods keep the same signatures and continue to compile and deploy."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Wire the Activity 2 migration scaffold into `backend/main.mo` canister upgrade lifecycle by adding minimal stable upgrade plumbing that (a) persists the wallet-domain state across upgrades, (b) passes the pre-upgrade (legacy) wallet-domain state into `migration.run(...)` during upgrade, and (c) persists the post-migration organization-scoped wallet-domain state after upgrade, without breaking existing canister behavior or changing existing public APIs unrelated to the migration.",
+      "text": "Ensure `backend/migration.mo` exists and exports a stable `run(...)` entrypoint used by `backend/main.mo` during upgrades, where `run(...)` accepts the pre-upgrade (legacy) wallet-domain state and returns the post-migration (organization-scoped) wallet-domain state in a way that is forward-compatible for subsequent Activity 2 steps.",
       "target": "backend",
       "source": {
         "messageIds": [
@@ -34,23 +34,20 @@
         ]
       },
       "acceptanceCriteria": [
-        "`backend/main.mo` compiles after adding upgrade hooks/plumbing.",
-        "A canister upgrade does not lose wallet-domain state that is included in the new stable upgrade payload.",
-        "`migration.run(...)` is invoked as part of the upgrade flow and its output is what gets persisted post-upgrade.",
-        "Existing public methods in `backend/main.mo` (e.g., profile/org/Stripe methods) remain available with unchanged signatures and continue to behave as before."
+        "`backend/migration.mo` compiles and exports `run(...)` with a stable signature intended for future Activity 2 migration steps.",
+        "`backend/main.mo` imports and invokes `migration.run(...)` during upgrade restoration.",
+        "A canister upgrade path exists where wallet-domain state is round-tripped through stable memory (preupgrade -> migration.run -> postupgrade) without trapping."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister; keep all core logic in `backend/main.mo`.",
-    "Do not change or remove existing public APIs unrelated to the migration wiring.",
-    "Generate/modify `backend/migration.mo` only as needed for upgrade/migration; keep the migration policy conditional (only introduce transformation logic when required).",
-    "Use English for any user-facing text."
+    "Backend must remain a single-actor architecture with all Motoko logic living in `backend/main.mo` (except the migration helper module in `backend/migration.mo`).",
+    "Do not introduce additional backend services, databases, or external persistence.",
+    "Do not modify frontend immutable paths listed in SYSTEM_CONTEXT."
   ],
   "nonGoals": [
-    "Implementing full wallet/transaction/event CRUD APIs.",
-    "Implementing frontend wiring for organization-scoped wallets/transactions/events.",
-    "Fixing unrelated known issues (e.g., Stripe form encoding or React Query placeholder hooks) unless directly required to compile the migration wiring."
+    "Implementing full wallet/transaction CRUD APIs or frontend wallet/transaction UI wiring in this step (only upgrade/migration plumbing).",
+    "Changing existing public APIs unrelated to canister upgrade migration."
   ],
   "imageRequirements": {
     "required": [],

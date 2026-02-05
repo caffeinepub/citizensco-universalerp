@@ -1,39 +1,40 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T00:12:59.012Z",
-  "summary": "REQ-1 is partially met: `backend/migration.mo` was added and exports a no-op `run(...)`, but it is not clearly structured around migrating legacy wallet-domain state into organization-scoped wallet-domain structures. REQ-2 is not evidenced in the provided `backend/main.mo` diff: there are no visible stable upgrade hooks/persistence wiring or invocation of `migration.run(...)` as part of pre/post-upgrade state handling.",
+  "generatedAt": "2026-02-05T01:36:23.133Z",
+  "summary": "The diff adds a new `backend/migration.mo` module and modifies `backend/main.mo` to import it, but the provided diff excerpts do not show the required canister upgrade hooks (`system preupgrade`/`system postupgrade`) or stable round-tripping of wallet-domain state. Additionally, `backend/migration.mo` appears to introduce many unrelated domain types (ERP/CRM/HR/etc.) beyond the requested wallet-domain migration scaffold, and `project_state.json` was updated though not requested by the BuildRequest.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "`backend/migration.mo` `run(...)` should be structured specifically to migrate legacy (pre-organization-scoped) wallet-domain state into current organization-scoped wallet-domain structures, while keeping a stable signature for future transformation logic.",
-      "reason": "The added module defines only `Organization` and an `Actor` containing `organizations`, with `run(old : Actor) : Actor` simply returning `old`. There is no evidence of wallet-domain state types (legacy or org-scoped) or migration scaffolding around wallet-domain structures.",
+      "requirement": "Wire upgrade lifecycle plumbing into `backend/main.mo` so wallet-domain state is persisted across canister upgrades and routed through `migration.run(...)` during upgrade.",
+      "reason": "The `backend/main.mo` excerpt shows an import of `Migration` and an alias `(with migration = Migration.run)`, but does not show any `system preupgrade` / `system postupgrade` hooks, any stable variables, or any persistence/restore logic for wallet-domain state across upgrades.",
       "evidence": [
-        "backend/migration.mo"
+        "backend/main.mo (truncated)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Add stable upgrade plumbing in `backend/main.mo` to persist wallet-domain state across upgrades, pass pre-upgrade (legacy) wallet-domain state into `migration.run(...)`, and persist the post-migration org-scoped wallet-domain state after upgrade, without breaking existing public APIs.",
-      "reason": "The diff shows `import Migration \"migration\";` and a `(with migration = Migration.run)` line, but no visible `system func preupgrade`/`postupgrade`, no stable variables for wallet-domain state, and no evidence that `migration.run(...)` is invoked during upgrade with its output persisted.",
+      "requirement": "`backend/migration.mo` exports a stable `run(...)` entrypoint that accepts pre-upgrade wallet-domain state and returns post-migration (organization-scoped) wallet-domain state, and `backend/main.mo` invokes it during upgrade restoration with stable round-tripping (preupgrade -> migration.run -> postupgrade) without trapping.",
+      "reason": "The added `backend/migration.mo` content shown is dominated by type definitions and does not include evidence of a `public func run(...)` signature or implementation. Likewise, `backend/main.mo` does not show invocation of `migration.run(...)` inside `postupgrade` or any stable-memory round-trip logic.",
       "evidence": [
-        "backend/main.mo"
+        "backend/migration.mo (truncated)",
+        "backend/main.mo (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Migration module defines `Organization` and `Actor.organizations` map as the migration input/output schema.",
-      "reason": "The BuildRequest is specifically about migrating wallet-domain state (legacy to organization-scoped wallet-domain structures). The diff adds organization-centric types in `backend/migration.mo` with no shown wallet-domain linkage.",
+      "description": "Large set of unrelated ERP/CRM/HR/e-commerce domain type definitions added to `backend/migration.mo` (Organizations, Products, Orders, Contacts, Leads, Opportunities, Employees, Payroll, etc.), plus imports like `blob-storage/Storage` and `stripe/stripe` within migration module.",
+      "reason": "The BuildRequest is specifically about wallet-domain migration scaffolding and upgrade lifecycle wiring; it does not request introducing broad new domain models or Stripe/storage-related types in the migration helper.",
       "evidence": [
-        "backend/migration.mo"
+        "backend/migration.mo (truncated)"
       ]
     },
     {
-      "description": "`project_state.json` updated to describe expanded multi-tenant scope, wallet connector plans, and other product narrative details.",
-      "reason": "The BuildRequest only asked for backend migration scaffolding and wiring; updating project summary/state is not requested.",
+      "description": "Project metadata/state update in `project_state.json` (e.g., `projectStateVersion` bump and summary/feature descriptions changes).",
+      "reason": "No requirement in the BuildRequest asks to modify `project_state.json`; the scope is backend upgrade/migration plumbing only.",
       "evidence": [
-        "project_state.json"
+        "project_state.json (truncated)"
       ]
     }
   ],

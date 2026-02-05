@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Add a minimal, compile-safe canister upgrade migration scaffold to migrate legacy (pre-organization-scoped) wallet-domain state into the current organization-scoped wallet-domain structures.
+**Goal:** Wire wallet-domain state persistence and migration into the canister upgrade lifecycle so state can be safely round-tripped across upgrades.
 
 **Planned changes:**
-- Add a new Motoko module at `backend/migration.mo` exporting a stable `run(...)` entrypoint for upgrade migrations, initially implemented as a safe no-op/pass-through.
-- Update `backend/main.mo` to include minimal stable upgrade hooks/plumbing that persists wallet-domain state across upgrades and invokes `migration.run(...)` during the upgrade flow.
-- Persist the post-migration (organization-scoped) wallet-domain state after upgrade without changing unrelated public APIs or breaking existing behavior.
+- Add `system preupgrade` and `system postupgrade` hooks (or the project’s equivalent) in `backend/main.mo` to persist and restore wallet-domain state across upgrades.
+- Ensure `backend/main.mo` routes restored (legacy) wallet-domain state through `migration.run(...)` during `postupgrade` and uses the returned value as the post-migration wallet-domain state.
+- Create/ensure `backend/migration.mo` exists and exports a stable, forward-compatible `run(...)` function that accepts pre-upgrade wallet-domain state and returns post-migration (organization-scoped) wallet-domain state.
+- Keep all existing non-migration public APIs unchanged (same signatures) and compiling/deploying.
 
-**User-visible outcome:** Canister upgrades preserve wallet-domain state and execute a migration step (currently a safe no-op) without changing existing app functionality or public method signatures.
+**User-visible outcome:** The canister can be upgraded without trapping, and wallet-domain state is preserved and passed through a migration step during upgrade, without changing existing non-migration APIs.
