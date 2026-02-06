@@ -1,6 +1,6 @@
 {
-  "frontend/src/App.tsx": "Main application component with TanStack Router, ThemeProvider, CartProvider, OrganizationProvider, and newly added WalletConnectorProvider wrapping the app for ICP wallet integration.",
-  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations with wallet and organization methods stubbed as mock implementations returning empty arrays or throwing \"not yet implemented\" errors until backend methods are available, while maintaining proper cache invalidation structure.",
+  "frontend/src/App.tsx": "Main application component with routing, providers, and newly integrated DeploymentReadinessBanner displayed in the Layout above main content for admin visibility.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations with local DeploymentReadinessStatus type definition and useDeploymentReadiness hook that checks system status using existing backend methods (isStripeConfigured, isCallerAdmin) with graceful error handling.",
   "frontend/src/contexts/CartContext.tsx": "Shopping cart context provider managing cart state with localStorage persistence using Product type from erp-types, providing addItem/removeItem/updateQuantity/clearCart operations and totalItems/totalPrice calculations.",
   "frontend/src/components/Header.tsx": "Application header with navigation including organization switcher for authenticated users with multiple organizations, admin access buttons, shopping cart indicator, and responsive layout.",
   "frontend/src/components/Footer.tsx": "Simple footer component with copyright notice, caffeine.ai attribution link, and social media icons.",
@@ -31,9 +31,9 @@
   "frontend/src/components/WalletSummary.tsx": "Reusable wallet summary component displaying total balance, connected wallets, wallet overview with live status, and recent transaction events with real-time updates using properly typed enum values for WalletStatus and TransactionStatusNew from erp-types.",
   "frontend/src/components/WalletManagement.tsx": "Comprehensive wallet management interface with add/delete wallet functionality and live status indicators using proper enum types from erp-types for WalletStatus and WalletType, with error handling and loading states.",
   "frontend/src/types/erp-types.ts": "Comprehensive placeholder TypeScript type definitions for all ERP functionality including wallet types (UnifiedWallet, WalletStatus, WalletType, WalletTransaction, TransactionStatusNew, WalletTransactionEvent) and organization types (OrganizationRole, OrganizationMember) that are not yet exposed in the backend interface.",
-  "frontend/src/contexts/OrganizationContext.tsx": "React context provider managing active organization state with localStorage persistence and automatic validation, using mock implementation for listOrganizations until backend method is available.",
+  "frontend/src/contexts/OrganizationContext.tsx": "React context provider managing active organization state with localStorage persistence and automatic validation, now using the real useListOrganizations hook to fetch organizations from the backend.",
   "frontend/src/components/OrganizationSwitcher.tsx": "Dropdown component for authenticated users to select and switch between their available organizations, displaying organization name and description with visual indicator for active selection.",
-  "frontend/src/components/admin/OrganizationManagement.tsx": "Admin-only interface for creating and viewing organizations with form dialog for organization creation, table display of all organizations with member counts, and automatic query refresh after successful creation.",
+  "frontend/src/components/admin/OrganizationManagement.tsx": "Admin-only interface for creating and viewing organizations with form dialog for organization creation, now calling the backend with only required parameters (name and optional description) instead of constructing full Organization objects client-side.",
   "frontend/src/wallets/walletConnectorTypes.ts": "Type definitions for wallet connector abstraction including provider IDs, availability states, connection info, and the WalletConnector interface.",
   "frontend/src/wallets/inpageProviders.d.ts": "Ambient TypeScript declarations for Plug and Oisy wallet inpage provider objects injected into window.ic namespace.",
   "frontend/src/wallets/connectors/plugConnector.ts": "Plug wallet connector implementation handling detection, connection, disconnection, and state retrieval using Plug's browser extension API.",
@@ -41,5 +41,8 @@
   "frontend/src/wallets/walletConnectorRegistry.ts": "Registry providing access to all available wallet connectors (Plug and Oisy) via list and lookup functions.",
   "frontend/src/contexts/WalletConnectorContext.tsx": "React context managing wallet connector state with automatic default provider selection (Oisy preferred, Plug fallback) based on availability, including connection/disconnection actions and availability tracking.",
   "frontend/src/hooks/useWalletConnector.ts": "Hook re-exporting useWalletConnector from WalletConnectorContext for convenient access to wallet connector state and actions.",
-  "frontend/src/utils/formatIdentity.ts": "Utility function to format long principal/account IDs for display by truncating the middle portion."
+  "frontend/src/utils/formatIdentity.ts": "Utility function to format long principal/account IDs for display by truncating the middle portion.",
+  "frontend/src/backend.d.ts": "Extended TypeScript interface for backend with DeploymentReadinessStatus type and getDeploymentReadiness method for querying system configuration status.",
+  "frontend/src/components/DeploymentReadinessBanner.tsx": "Admin-only status banner component displaying deployment readiness with access control and Stripe configuration status, recommendations, and visual indicators using data from useDeploymentReadiness hook.",
+  "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md": "Comprehensive step-by-step deployment guide for Activity 2 with numbered steps, verification criteria, common issues, rollback procedures, and readiness verification instructions."
 }

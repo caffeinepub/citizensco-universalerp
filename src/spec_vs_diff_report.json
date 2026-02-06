@@ -1,30 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T02:22:20.172Z",
-  "summary": "The diff does not show implementation of canister upgrade plumbing (preupgrade/postupgrade) nor any migration module changes. Only `backend/main.mo` (truncated, showing type/import sections) and `project_state.json` were modified; `backend/migration.mo` was not added or updated.",
+  "generatedAt": "2026-02-05T12:41:18.786Z",
+  "summary": "Frontend adds an admin-only deployment readiness banner and a new Activity 2 deployment checklist document, plus a React Query hook that approximates readiness by calling existing backend methods. The diff does not show backend changes implementing non-trapping access-control initialization or a single structured readiness endpoint.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible.",
-      "reason": "The provided `backend/main.mo` diff excerpt does not show any `Migration` import/definition nor `system func postupgrade()` calling `Migration.run({ wallets; walletTransactions; walletEvents })` and reassigning stable vars. With truncation, this might exist elsewhere, but there is no evidence in the shown diff summary.",
+      "requirement": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
+      "reason": "The diff summary provides no evidence of backend changes that (a) catch/avoid traps when secrets are missing during install/upgrade, or (b) persist and expose a deterministic internal 'access control initialized' state. The only shown backend snippet is type declarations and existing access-control state initialization.",
       "evidence": [
-        "backend/main.mo (truncated)"
+        "backend/main.mo"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts `{ wallets; walletTransactions; walletEvents }` and returns a complete migrated wallet-domain state, including a no-op path.",
-      "reason": "No files were added, and `backend/migration.mo` is not listed among modified files, so there is no evidence that `Migration.run(...)` exists/was updated to meet the required interface and behavior.",
+      "requirement": "Add backend APIs to support a deployment/readiness check via a single backend method returning structured status including access-control-initialized and stripe-configured, safe to call without traps.",
+      "reason": "Frontend explicitly notes the backend readiness method is 'not yet implemented' and instead calls individual methods (isStripeConfigured, isCallerAdmin), indicating the required single structured backend readiness API is missing from the diff.",
       "evidence": [
-        "<file-diff>: Added: 0, Modified: 2 (backend/main.mo, project_state.json)"
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, with English messages and recommended next actions.",
+      "reason": "The banner is gated behind an admin check and returns null when the caller is not admin (or when isAdmin is falsy), so non-admin users may not see any readiness/status UI for self-diagnosis as required.",
+      "evidence": [
+        "frontend/src/components/DeploymentReadinessBanner.tsx"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.74,
+  "hallucinated_features": [
+    {
+      "description": "Frontend implements deployment readiness by inferring access-control initialization from the ability to call isCallerAdmin, and explicitly comments that the backend readiness method is not implemented.",
+      "reason": "REQ-2 asked for a single backend readiness endpoint; adding a frontend-only inferred readiness mechanism (and a local type) is not requested as a substitute and is presented as a workaround.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
+    "frontend/src/App.tsx",
+    "frontend/src/components/DeploymentReadinessBanner.tsx",
+    "frontend/src/hooks/useQueries.ts",
     "project_state.json"
   ]
 }

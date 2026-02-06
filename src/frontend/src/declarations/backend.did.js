@@ -19,6 +19,11 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const OrganizationRole = IDL.Variant({
+  'org_employee' : IDL.Null,
+  'org_manager' : IDL.Null,
+  'org_admin' : IDL.Null,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -31,7 +36,18 @@ export const ShoppingItem = IDL.Record({
   'priceInCents' : IDL.Nat,
   'productDescription' : IDL.Text,
 });
+export const OrganizationId = IDL.Text;
 export const Time = IDL.Int;
+export const Organization = IDL.Record({
+  'id' : OrganizationId,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'memberCount' : IDL.Nat,
+  'description' : IDL.Opt(IDL.Text),
+  'updatedAt' : Time,
+  'adminCount' : IDL.Nat,
+});
 export const Attendance = IDL.Record({
   'id' : IDL.Text,
   'status' : IDL.Variant({
@@ -151,16 +167,11 @@ export const Order = IDL.Record({
   'createdAt' : Time,
   'items' : IDL.Vec(OrderItem),
 });
-export const OrganizationId = IDL.Text;
-export const Organization = IDL.Record({
-  'id' : OrganizationId,
-  'name' : IDL.Text,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'memberCount' : IDL.Nat,
-  'description' : IDL.Opt(IDL.Text),
-  'updatedAt' : Time,
-  'adminCount' : IDL.Nat,
+export const OrganizationMember = IDL.Record({
+  'organizationId' : IDL.Text,
+  'userId' : IDL.Principal,
+  'joinedAt' : Time,
+  'roles' : IDL.Vec(OrganizationRole),
 });
 export const Payroll = IDL.Record({
   'id' : IDL.Text,
@@ -309,10 +320,20 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addOrganizationMember' : IDL.Func(
+      [IDL.Text, IDL.Principal, IDL.Vec(OrganizationRole)],
+      [],
+      [],
+    ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createCheckoutSession' : IDL.Func(
       [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
       [IDL.Text],
+      [],
+    ),
+  'createOrganization' : IDL.Func(
+      [IDL.Text, IDL.Opt(IDL.Text)],
+      [Organization],
       [],
     ),
   'getAttendance' : IDL.Func([IDL.Text], [IDL.Opt(Attendance)], ['query']),
@@ -327,6 +348,12 @@ export const idlService = IDL.Service({
   'getOpportunity' : IDL.Func([IDL.Text], [IDL.Opt(Opportunity)], ['query']),
   'getOrder' : IDL.Func([IDL.Text], [IDL.Opt(Order)], ['query']),
   'getOrganization' : IDL.Func([IDL.Text], [IDL.Opt(Organization)], ['query']),
+  'getOrganizationMembers' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(OrganizationMember)],
+      ['query'],
+    ),
+  'getOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
   'getPayroll' : IDL.Func([IDL.Text], [IDL.Opt(Payroll)], ['query']),
   'getPerformanceRecord' : IDL.Func(
       [IDL.Text],
@@ -353,12 +380,18 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+  'removeOrganizationMember' : IDL.Func([IDL.Text, IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
+    ),
+  'updateOrganizationMemberRoles' : IDL.Func(
+      [IDL.Text, IDL.Principal, IDL.Vec(OrganizationRole)],
+      [],
+      [],
     ),
 });
 
@@ -376,6 +409,11 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const OrganizationRole = IDL.Variant({
+    'org_employee' : IDL.Null,
+    'org_manager' : IDL.Null,
+    'org_admin' : IDL.Null,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -388,7 +426,18 @@ export const idlFactory = ({ IDL }) => {
     'priceInCents' : IDL.Nat,
     'productDescription' : IDL.Text,
   });
+  const OrganizationId = IDL.Text;
   const Time = IDL.Int;
+  const Organization = IDL.Record({
+    'id' : OrganizationId,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'memberCount' : IDL.Nat,
+    'description' : IDL.Opt(IDL.Text),
+    'updatedAt' : Time,
+    'adminCount' : IDL.Nat,
+  });
   const Attendance = IDL.Record({
     'id' : IDL.Text,
     'status' : IDL.Variant({
@@ -508,16 +557,11 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : Time,
     'items' : IDL.Vec(OrderItem),
   });
-  const OrganizationId = IDL.Text;
-  const Organization = IDL.Record({
-    'id' : OrganizationId,
-    'name' : IDL.Text,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'memberCount' : IDL.Nat,
-    'description' : IDL.Opt(IDL.Text),
-    'updatedAt' : Time,
-    'adminCount' : IDL.Nat,
+  const OrganizationMember = IDL.Record({
+    'organizationId' : IDL.Text,
+    'userId' : IDL.Principal,
+    'joinedAt' : Time,
+    'roles' : IDL.Vec(OrganizationRole),
   });
   const Payroll = IDL.Record({
     'id' : IDL.Text,
@@ -663,10 +707,20 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addOrganizationMember' : IDL.Func(
+        [IDL.Text, IDL.Principal, IDL.Vec(OrganizationRole)],
+        [],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createCheckoutSession' : IDL.Func(
         [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
         [IDL.Text],
+        [],
+      ),
+    'createOrganization' : IDL.Func(
+        [IDL.Text, IDL.Opt(IDL.Text)],
+        [Organization],
         [],
       ),
     'getAttendance' : IDL.Func([IDL.Text], [IDL.Opt(Attendance)], ['query']),
@@ -689,6 +743,12 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(Organization)],
         ['query'],
       ),
+    'getOrganizationMembers' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(OrganizationMember)],
+        ['query'],
+      ),
+    'getOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
     'getPayroll' : IDL.Func([IDL.Text], [IDL.Opt(Payroll)], ['query']),
     'getPerformanceRecord' : IDL.Func(
         [IDL.Text],
@@ -715,12 +775,18 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+    'removeOrganizationMember' : IDL.Func([IDL.Text, IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
+      ),
+    'updateOrganizationMemberRoles' : IDL.Func(
+        [IDL.Text, IDL.Principal, IDL.Vec(OrganizationRole)],
+        [],
+        [],
       ),
   });
 };

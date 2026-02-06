@@ -1,28 +1,56 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T02:22:20.175Z",
+  "generatedAt": "2026-02-05T12:41:18.809Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 0,
+    "total": 4,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
+        "summary": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
+        "summary": "Add backend APIs to support a deployment/readiness check for Activity 2 Step 6, including: (1) whether access control is initialized, (2) whether Stripe is configured, and (3) any other critical runtime prerequisites needed for the app to function without trapping.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/DeploymentReadinessBanner.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/DeploymentReadinessBanner.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+        ],
+        "matchedFiles": [
+          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+        ]
       }
     ]
   },
@@ -30,11 +58,16 @@
     "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
+    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/DeploymentReadinessBanner.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

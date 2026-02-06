@@ -26,13 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Organization } from '../../backend';
 
 export default function OrganizationManagement() {
   const { data: organizations = [], isLoading } = useListOrganizations();
   const createOrganization = useCreateOrganization();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -48,18 +46,10 @@ export default function OrganizationManagement() {
     }
 
     try {
-      const newOrg: Organization = {
-        id: `org_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      await createOrganization.mutateAsync({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        createdBy: '' as any, // Will be set by backend
-        createdAt: BigInt(Date.now() * 1000000),
-        updatedAt: BigInt(Date.now() * 1000000),
-        memberCount: BigInt(1),
-        adminCount: BigInt(1),
-      };
-
-      await createOrganization.mutateAsync(newOrg);
+      });
       toast.success('Organization created successfully');
       setIsCreateDialogOpen(false);
       setFormData({ name: '', description: '' });

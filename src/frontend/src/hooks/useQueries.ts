@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useInternetIdentity } from './useInternetIdentity';
-import type { UserProfile, Organization } from '../backend';
+import { Principal } from '@dfinity/principal';
+import type { UserProfile, Organization, OrganizationMember, OrganizationRole } from '../backend';
 import type {
   Product,
   Category,
@@ -29,9 +30,80 @@ import type {
   WalletTransaction,
   TransactionStatusNew,
   WalletTransactionEvent,
-  OrganizationMember,
-  OrganizationRole,
 } from '../types/erp-types';
+
+// Local type definition for deployment readiness (backend method not yet implemented)
+export interface DeploymentReadinessStatus {
+  accessControlInitialized: boolean;
+  stripeConfigured: boolean;
+  message: string;
+  recommendations: string[];
+}
+
+// Deployment Readiness Query
+export function useDeploymentReadiness() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<DeploymentReadinessStatus>({
+    queryKey: ['deploymentReadiness'],
+    queryFn: async () => {
+      if (!actor) {
+        return {
+          accessControlInitialized: false,
+          stripeConfigured: false,
+          message: 'Backend actor not available',
+          recommendations: ['Wait for backend initialization'],
+        };
+      }
+      
+      // Backend method not yet implemented, so we check individual status methods
+      try {
+        const stripeConfigured = await actor.isStripeConfigured();
+        const isAdmin = await actor.isCallerAdmin();
+        
+        // We can infer access control is initialized if we can check admin status
+        const accessControlInitialized = isAdmin !== undefined;
+        
+        const allReady = accessControlInitialized && stripeConfigured;
+        
+        let message = '';
+        const recommendations: string[] = [];
+        
+        if (allReady) {
+          message = 'All systems ready for deployment';
+        } else if (!accessControlInitialized && !stripeConfigured) {
+          message = 'System requires configuration before deployment';
+          recommendations.push('Initialize access control by setting CAFFEINE_ADMIN_TOKEN and deploying');
+          recommendations.push('Configure Stripe in the admin dashboard');
+        } else if (!accessControlInitialized) {
+          message = 'Access control needs initialization';
+          recommendations.push('Initialize access control by setting CAFFEINE_ADMIN_TOKEN and deploying');
+        } else {
+          message = 'Stripe payment needs configuration';
+          recommendations.push('Configure Stripe in the admin dashboard');
+        }
+        
+        return {
+          accessControlInitialized,
+          stripeConfigured,
+          message,
+          recommendations,
+        };
+      } catch (error) {
+        console.error('Failed to fetch deployment readiness:', error);
+        return {
+          accessControlInitialized: false,
+          stripeConfigured: false,
+          message: 'Unable to check deployment status',
+          recommendations: ['Backend may not be fully initialized'],
+        };
+      }
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+    refetchInterval: 30000,
+  });
+}
 
 // User Profile Queries
 export function useGetCallerUserProfile() {
@@ -69,7 +141,7 @@ export function useSaveCallerUserProfile() {
   });
 }
 
-// Organization Queries - Mock implementation until backend methods are available
+// Organization Queries
 export function useListOrganizations() {
   const { actor, isFetching } = useActor();
   const { identity } = useInternetIdentity();
@@ -77,8 +149,8 @@ export function useListOrganizations() {
   return useQuery<Organization[]>({
     queryKey: ['organizations'],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor) return [];
+      return actor.getOrganizations();
     },
     enabled: !!actor && !isFetching && !!identity,
   });
@@ -89,9 +161,9 @@ export function useCreateOrganization() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (org: Organization) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createOrganization(name, description || null);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
@@ -118,8 +190,8 @@ export function useGetOrganizationMembers(orgId: string) {
   return useQuery<OrganizationMember[]>({
     queryKey: ['organizationMembers', orgId],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor) return [];
+      return actor.getOrganizationMembers(orgId);
     },
     enabled: !!actor && !isFetching && !!orgId,
   });
@@ -131,8 +203,9 @@ export function useAddOrganizationMember() {
 
   return useMutation({
     mutationFn: async ({ orgId, userId, roles }: { orgId: string; userId: string; roles: OrganizationRole[] }) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+      if (!actor) throw new Error('Actor not available');
+      const principal = Principal.fromText(userId);
+      return actor.addOrganizationMember(orgId, principal, roles);
     },
     onSuccess: (_, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: ['organizationMembers', orgId] });
@@ -147,8 +220,9 @@ export function useRemoveOrganizationMember() {
 
   return useMutation({
     mutationFn: async ({ orgId, userId }: { orgId: string; userId: string }) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+      if (!actor) throw new Error('Actor not available');
+      const principal = Principal.fromText(userId);
+      return actor.removeOrganizationMember(orgId, principal);
     },
     onSuccess: (_, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: ['organizationMembers', orgId] });
@@ -163,8 +237,9 @@ export function useUpdateOrganizationMemberRoles() {
 
   return useMutation({
     mutationFn: async ({ orgId, userId, roles }: { orgId: string; userId: string; roles: OrganizationRole[] }) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+      if (!actor) throw new Error('Actor not available');
+      const principal = Principal.fromText(userId);
+      return actor.updateOrganizationMemberRoles(orgId, principal, roles);
     },
     onSuccess: (_, { orgId }) => {
       queryClient.invalidateQueries({ queryKey: ['organizationMembers', orgId] });
@@ -704,6 +779,7 @@ export function useSetStripeConfiguration() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ['deploymentReadiness'] });
     },
   });
 }

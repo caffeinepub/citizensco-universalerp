@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 30,
-  "summary": "CitizensCo UniversalERP continues as a React (Vite) SPA + ICP Motoko canister with Internet Identity auth, server-enforced RBAC, Stripe checkout via IC HTTP outcalls, and in-browser wallet connectors. The project has progressed into multi-tenant work: Phase 1 multi-organization (org entity + memberships) has been initiated/iterated, and ongoing work is focused on making wallets/transactions organization-scoped (org isolation) via incremental backend changes (Activities/Micro-steps) to avoid execution-limit issues. Wallet connector support now includes both Oisy and Plug, with Oisy set as the default.",
+  "projectStateVersion": 3,
+  "summary": "CitizensCo UniversalERP is a React (Vite) single-page ERP/ecommerce application backed by an Internet Computer (ICP) Motoko canister. It supports Internet Identity authentication, server-enforced RBAC (admin/user/guest), Stripe Checkout integration via IC HTTP outcalls, organization creation/membership/role management, and in-browser ICP wallet connections (Plug/Oisy) for an ICP payment option. The frontend contains substantial UI scaffolding for ecommerce administration, CRM, HRMS, and wallet management, while many non-organization domain APIs are still mocked on the frontend and not yet implemented on the backend.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -11,148 +11,204 @@
         "AuthClient integration",
         "DelegationIdentity session"
       ],
-      "description": "Implements an InternetIdentityProvider/useInternetIdentity hook using @dfinity/auth-client to initialize/restore identities, perform login/logout, and expose login lifecycle status flags and error state.",
+      "description": "Implements an InternetIdentityProvider and useInternetIdentity hook using @dfinity/auth-client to initialize/restore identities, perform login/logout, and expose login lifecycle state and errors.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-2",
-      "title": "Identity-aware canister actor creation with access-control initialization",
+      "title": "Identity-aware backend actor creation and query invalidation",
       "synonyms": [
         "useActor",
         "authenticated actor recreation",
-        "_initializeAccessControlWithSecret"
+        "actor query key keyed by principal"
       ],
-      "description": "Creates an anonymous canister actor when unauthenticated and an authenticated actor when logged in; on authenticated actor creation it calls the backend access-control initializer using a secret token extracted from the URL hash/session.",
+      "description": "Creates an anonymous actor when unauthenticated and an authenticated actor when logged in; actor creation is cached via React Query and triggers invalidation/refetch of non-actor queries when identity changes.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-3",
-      "title": "Secure secret extraction from URL hash with session persistence",
+      "title": "Access-control initialization using a secret token",
       "synonyms": [
-        "getSecretParameter",
-        "getSecretFromHash",
-        "sessionStorage token persistence"
+        "_initializeAccessControlWithSecret",
+        "admin token bootstrap",
+        "caffeineAdminToken"
       ],
-      "description": "Utility functions extract secrets from the URL hash fragment (preferred over query params), store them in sessionStorage, and attempt to remove them from the URL to reduce leakage.",
+      "description": "On authenticated actor creation, the frontend extracts a secret token from the URL hash and calls the backend initializer so the first eligible caller can become admin and subsequent callers are registered as users.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-4",
-      "title": "Backend role-based access control (RBAC)",
+      "title": "Secure URL hash secret extraction with session persistence",
       "synonyms": [
-        "AccessControl",
-        "MixinAuthorization",
-        "admin/user/guest roles",
-        "isCallerAdmin"
+        "getSecretParameter",
+        "getSecretFromHash",
+        "sessionStorage token persistence",
+        "hash cleanup"
       ],
-      "description": "Motoko access-control module assigns roles (first caller can become admin using a shared token), supports admin-only role assignment, and exposes role/admin query methods used to gate admin UIs.",
+      "description": "Utilities read sensitive parameters from the URL hash fragment, persist them in sessionStorage, and remove them from the URL to reduce accidental leakage via browser history or sharing.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-5",
-      "title": "User profile storage with onboarding modal",
+      "title": "Backend RBAC (admin/user/guest) and authorization mixin",
+      "synonyms": [
+        "AccessControl",
+        "MixinAuthorization",
+        "isCallerAdmin",
+        "assignCallerUserRole"
+      ],
+      "description": "Motoko access-control module registers principals and enforces role permissions; mixin exposes role queries and admin-only role assignment, enabling frontend admin gating for dashboards.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-6",
+      "title": "User profile storage and onboarding modal",
       "synonyms": [
         "UserProfile",
         "getCallerUserProfile",
         "saveCallerUserProfile",
         "ProfileSetupModal"
       ],
-      "description": "Backend stores per-caller user profiles and enforces user-role permission checks. Frontend prompts authenticated users without a profile to create one via a blocking setup modal.",
+      "description": "Backend supports per-caller user profile get/save with RBAC checks; frontend shows a blocking profile setup modal when an authenticated user has no stored profile.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-6",
-      "title": "Stripe configuration and Checkout Session creation",
+      "id": "IF-7",
+      "title": "Stripe configuration and Checkout Session creation via IC HTTP outcalls",
       "synonyms": [
         "isStripeConfigured",
         "setStripeConfiguration",
         "createCheckoutSession",
         "StripeSetupModal"
       ],
-      "description": "Admin-only Stripe configuration is stored in the canister; the canister can create Stripe Checkout sessions via HTTP outcalls. Frontend shows an admin-only setup modal when Stripe is not configured and uses createCheckoutSession during checkout.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-7",
-      "title": "IC HTTP outcalls helper with response transform",
-      "synonyms": [
-        "OutCall.httpGetRequest",
-        "OutCall.httpPostRequest",
-        "transform strips headers"
-      ],
-      "description": "Motoko helper wraps IC.http_request for GET/POST with cycle budgeting, default headers (User-Agent and Idempotency-Key for POST), a transform function that removes headers, and UTF-8 decoding with traps on empty responses.",
+      "description": "Admin-only Stripe configuration is stored in the canister and used to create Stripe Checkout sessions through IC HTTP outcalls; frontend provides an admin setup modal and performs checkout redirects.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-8",
-      "title": "Blob-storage gateway authorization and dead-blob pruning utilities",
+      "title": "HTTP outcalls helper with transform and idempotency header",
+      "synonyms": [
+        "OutCall.httpGetRequest",
+        "OutCall.httpPostRequest",
+        "transform strips headers",
+        "Idempotency-Key"
+      ],
+      "description": "Motoko helper wraps IC.http_request for GET/POST with fixed cycle budgeting, default headers (User-Agent and Idempotency-Key for POST), response transform stripping headers, and UTF-8 decoding with traps on empty responses.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-9",
+      "title": "Blob-storage gateway authorization and dead-blob maintenance utilities",
       "synonyms": [
         "caffeine storage mixin",
         "gateway principal sync",
         "dead blob pruning",
         "cashier refill"
       ],
-      "description": "Motoko storage modules/mixin support updating authorized gateway principals from a cashier canister, listing/pruning dead blobs with authorization checks, and topping up cycles via a cashier interface; includes a certificate creation stub.",
+      "description": "Motoko storage modules provide: syncing authorized gateway principals from a cashier canister, listing/pruning dead blobs with authorization checks, and topping up cycles via a cashier interface; includes a certificate creation stub.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-9",
+      "id": "IF-10",
+      "title": "Organization management backend APIs",
+      "synonyms": [
+        "getOrganizations",
+        "createOrganization",
+        "getOrganizationMembers",
+        "addOrganizationMember",
+        "removeOrganizationMember",
+        "updateOrganizationMemberRoles"
+      ],
+      "description": "Motoko canister implements organization listing (caller-scoped unless global admin), organization creation (creator becomes org admin), member listing, and membership/role mutations guarded by org-admin or global-admin checks.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "Frontend organization React Query hooks wired to backend",
+      "synonyms": [
+        "useListOrganizations",
+        "useCreateOrganization",
+        "useGetOrganizationMembers",
+        "useAddOrganizationMember",
+        "useRemoveOrganizationMember",
+        "useUpdateOrganizationMemberRoles"
+      ],
+      "description": "React Query hooks call real backend actor methods for organization operations and invalidate relevant caches (organizations list and members list); member mutations convert user IDs to Principal on the client.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
+      "title": "Organization selection context and switcher with persistence",
+      "synonyms": [
+        "OrganizationProvider",
+        "OrganizationSwitcher",
+        "active organization localStorage"
+      ],
+      "description": "Frontend maintains an active organization, hydrates it from localStorage, validates it against the caller’s current organization list, falls back to the first org when needed, and clears on logout; UI dropdown allows switching.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-13",
       "title": "Shopping cart state with localStorage persistence",
       "synonyms": [
         "CartProvider",
         "add/remove/update quantity",
         "computed totals"
       ],
-      "description": "Cart context persists cart items to localStorage, supports addItem/removeItem/updateQuantity/clearCart, and computes totalItems/totalPrice used across the storefront and checkout UI.",
+      "description": "Cart context persists cart items to localStorage, supports addItem/removeItem/updateQuantity/clearCart, and computes totalItems and totalPrice for use across storefront and checkout.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-10",
-      "title": "Storefront product catalog UI (scaffolded data)",
+      "id": "IF-14",
+      "title": "Storefront product catalog UI (scaffold)",
       "synonyms": [
         "StorefrontPage",
-        "product grid",
-        "search + category filter"
+        "search + category filter",
+        "product grid"
       ],
-      "description": "Implements a product catalog page with search and category filtering, product cards, stock-aware add-to-cart handling, and loading/empty states (currently backed by stubbed product/category query hooks).",
+      "description": "Implements a product catalog page with search and category filtering, product cards, add-to-cart behavior, stock-aware disabling, and loading/empty states (currently backed by stubbed product/category query hooks).",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-11",
-      "title": "Cart checkout flow with Stripe and ICP wallet gating",
+      "id": "IF-15",
+      "title": "Checkout flow with Stripe and ICP wallet gating",
       "synonyms": [
         "CartPage",
         "Stripe redirect checkout",
         "ICP wallet checkout option"
       ],
-      "description": "Checkout supports Stripe (creates a checkout session and redirects to Stripe) and an ICP-wallet option that is gated on a connected wallet provider; includes success/failure result pages.",
+      "description": "Checkout supports Stripe (creates a checkout session and redirects to Stripe) and an ICP wallet payment option that requires an in-browser wallet connection before proceeding; includes payment success/failure pages.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-12",
+      "id": "IF-16",
       "title": "Orders UI (customer + admin) scaffolding",
       "synonyms": [
         "OrdersPage",
         "OrderManagement",
         "cancel/update status"
       ],
-      "description": "Customer order history UI with status badges and cancel action, plus an admin order management table with status editing. Underlying data operations are currently mocked/stubbed in query hooks.",
+      "description": "Customer order history UI with status badges and cancel action, plus an admin order management table with status editing; underlying data operations are currently mocked in query hooks.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-13",
+      "id": "IF-17",
       "title": "Admin-gated dashboards and navigation",
       "synonyms": [
         "AdminDashboard",
@@ -160,191 +216,102 @@
         "HrmsDashboard",
         "access denied screens"
       ],
-      "description": "Admin-only pages and navigation are gated via isCallerAdmin; dashboards include KPI cards and tabbed management areas for ecommerce admin, CRM, HRMS, and wallets.",
+      "description": "Admin-only pages are gated via isCallerAdmin; header navigation conditionally shows admin entry points and dashboards render access denied views when not authorized.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-14",
-      "title": "CRM dashboard and management UIs (scaffold)",
+      "id": "IF-18",
+      "title": "Wallet connector framework (Plug and Oisy) with connection context",
+      "synonyms": [
+        "WalletConnectorProvider",
+        "PlugConnector",
+        "OisyConnector",
+        "auto-select provider"
+      ],
+      "description": "Connector abstraction over in-page wallet providers supports availability detection, provider selection, connect/disconnect, and connection-state checks; context auto-selects Oisy when available (else Plug).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-19",
+      "title": "Wallet summary and wallet management UIs (scaffold with polling)",
+      "synonyms": [
+        "WalletSummary",
+        "WalletManagement",
+        "transactions/events polling"
+      ],
+      "description": "Wallet UI components display wallet totals, per-wallet status/type labels, and recent transaction events with polling/refetch patterns; underlying wallet/transaction hooks are currently mocked or throw “not implemented”.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-20",
+      "title": "CRM UI suite (dashboard + contacts/leads/opportunities/pipeline) scaffold",
       "synonyms": [
         "ContactManagement",
         "LeadManagement",
         "OpportunityManagement",
         "PipelineOverview"
       ],
-      "description": "Implements CRM UI for managing contacts/leads/opportunities with dialogs, tables, stage badges, pipeline summaries, and conversion calculations; backend integrations for CRUD/list are not implemented (hooks throw/return empty).",
+      "description": "Implements CRM UI for managing contacts/leads/opportunities with dialogs, tables, stage badges, pipeline summaries, and conversion calculations; backend integrations for CRUD/list are not implemented in hooks (mostly mocked/throwing).",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-15",
-      "title": "HRMS dashboard and management UIs (partial scaffold)",
+      "id": "IF-21",
+      "title": "HRMS UI suite (dashboard + departments/employees/leaves) partial scaffold",
       "synonyms": [
         "EmployeeManagement",
         "DepartmentManagement",
         "LeaveManagement",
         "attendance/payroll/performance placeholders"
       ],
-      "description": "Implements HRMS dashboard tabs and KPI cards; includes department and leave-management UIs, while attendance/payroll/performance are “coming soon” placeholders and most mutations are not implemented in the backend.",
+      "description": "Implements HRMS dashboard and management UIs including department CRUD UI, employee CRUD UI (display is currently simplified), and pending leave approvals/rejections UI; attendance/payroll/performance screens are placeholders and backend hooks are not implemented.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-16",
-      "title": "Wallet connector framework (Oisy and Plug)",
-      "synonyms": [
-        "WalletConnectorProvider",
-        "PlugConnector",
-        "OisyConnector",
-        "auto-select Oisy"
-      ],
-      "description": "Connector abstraction over in-page wallet providers supports availability detection, provider selection, connect/disconnect, and connection-state checks; defaults to Oisy when available, otherwise Plug.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-17",
-      "title": "Wallet summary and wallet management UIs (scaffolded data)",
-      "synonyms": [
-        "WalletSummary",
-        "WalletManagement",
-        "transactions/events polling"
-      ],
-      "description": "UI components display wallet balances/statuses and recent transaction events with polling/refetch patterns and wallet CRUD UI; underlying wallet/transaction hooks are mocked or throw “not implemented”.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-18",
-      "title": "Organization selection context and switcher UI (scaffold)",
-      "synonyms": [
-        "OrganizationProvider",
-        "OrganizationSwitcher",
-        "active organization persistence"
-      ],
-      "description": "Frontend maintains an active organization with localStorage persistence and provides a header dropdown switcher; organization list/create/member APIs are currently mocked/unimplemented in hooks.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-19",
+      "id": "IF-22",
       "title": "Identity formatting helper",
       "synonyms": [
         "formatIdentity",
         "principal truncation",
         "account id shortening"
       ],
-      "description": "Utility to truncate long identity strings for display (prefix...suffix), used in wallet connection UI and other identity displays.",
+      "description": "Utility to truncate long identity strings for display (prefix...suffix), used in wallet connection UX and identity displays.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-20",
-      "title": "Canister upgrade migration scaffolding",
-      "synonyms": [
-        "migration.mo",
-        "preupgrade/postupgrade",
-        "stable state migration"
+      "id": "feature-expose-the-deployment-readiness-status-in-the-frontend-ui-so-users-can-self-diagnose-why-a-just-deployed-version-is-failing-including-user-facing-english-messages-for-missing-initialization-configuration-and-the-recommended-next-action-e-g-admin-setup-required-set-caffeine-admin-token-and-run-initialization",
+      "title": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+      "reqIds": [
+        "REQ-3"
       ],
-      "description": "Adds explicit canister migration hooks/scaffolding to support state persistence and evolution across canister upgrades (e.g., preupgrade/postupgrade wiring and migration module organization).",
-      "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-21",
-      "title": "Reusable build template for ICP + React (Vite) stack",
-      "synonyms": [
-        "build-template",
-        "deploy.sh",
-        "icp.yaml",
-        "template workspace"
+      "id": "feature-add-a-short-step-by-step-activity-2-deployment-checklist-document-in-the-repo-that-explicitly-reflects-the-confirm-at-each-step-workflow-and-includes-guidance-to-avoid-desynchronization-e-g-do-not-publish-manual-changes-mid-step-verify-readiness-endpoint-before-publishing",
+      "title": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
+      "reqIds": [
+        "REQ-4"
       ],
-      "description": "Provides a build-template workspace (frontend/backend configs, scripts, and dependencies) to bootstrap, build, and deploy the UniversalERP stack in a repeatable way.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-22",
-      "title": "Enhanced build-template: shadcn/ui component suite + custom ESLint guardrails",
-      "synonyms": [
-        "template shadcn/ui primitives",
-        "template eslint rules",
-        "no-bigint-in-query-keys",
-        "require-internet-identity-provider"
-      ],
-      "description": "Build-template expanded to include a broad set of shadcn/ui-style primitives and project-specific ESLint rules to enforce provider wiring and prevent problematic patterns (e.g., BigInt in React Query keys) when bootstrapping new apps.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-23",
-      "title": "Enhanced build-template: Docker/deploy assets and auxiliary build scripts",
-      "synonyms": [
-        "Dockerfile",
-        "deploy.sh",
-        "icp.yaml",
-        "image prune/resize scripts"
-      ],
-      "description": "Build-template includes Docker/deploy assets and helper scripts (e.g., prune-unused-images, resize-images) to support repeatable build and deployment workflows.",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "IF-24",
-      "title": "GitHub-exportable ICP CLI build/deploy workflow assets",
-      "synonyms": [
-        "github-export-icp-cli",
-        "build.sh",
-        "export-friendly template layout"
-      ],
-      "description": "Adds/updates repository assets and scripts to support a GitHub-exportable workflow for building and deploying the ICP + React (Vite) stack via ICP CLI, including top-level build scripting and template workspace alignment for reproducible CI/CD usage.",
-      "reqIds": [],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement true multi-organization (multi-tenant) support end-to-end, starting with org creation + org-scoped users/memberships/roles, then extend isolation across modules",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Make wallets, transactions, and wallet events organization-scoped (tenant-isolated) and wire frontend to active organization for wallet dashboards/queries",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Support multiple ICP wallet providers: add Plug alongside Oisy (connector + UI)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Set Oisy as the default wallet provider (auto-select preference) while keeping Plug as an alternative",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Allow admins to choose the default wallet provider per organization (org-level setting)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
+      "summary": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-7",
-      "summary": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
+      "id": "AR-2",
+      "summary": "Add backend APIs to support a deployment/readiness check for Activity 2 Step 6, including: (1) whether access control is initialized, (2) whether Stripe is configured, and (3) any other critical runtime prerequisites needed for the app to function without trapping.",
       "reqIds": [
         "REQ-2"
       ],
@@ -352,30 +319,30 @@
     }
   ],
   "architectural_notes": [
-    "Frontend uses TanStack Router for routing and @tanstack/react-query for data fetching, caching, polling (refetchInterval), and mutation invalidation.",
-    "Provider-driven app composition: InternetIdentityProvider, ThemeProvider (next-themes), QueryClientProvider, CartProvider, OrganizationProvider, and WalletConnectorProvider wrap the app.",
-    "Identity-aware backend actor creation: useActor recreates an authenticated actor when II identity changes and invalidates/refetches dependent React Query caches.",
-    "Backend is a Motoko actor composed via mixins (authorization + blob-storage maintenance), with centralized type definitions in backend/main.mo.",
-    "Server-side RBAC is enforced via AccessControl (admin/user/guest) and exposed to the frontend through isCallerAdmin for UI gating.",
-    "Stripe integration is implemented in Motoko using IC management canister HTTP outcalls with a response transform that strips headers.",
-    "Wallet connectivity is handled entirely in-browser using a connector abstraction over window.ic providers (Oisy/Plug) with auto-selection preferring Oisy.",
-    "BigInt is used throughout for money and timestamps (nanoseconds) with frequent UI conversion to Number for display.",
-    "UI is built with Tailwind CSS (OKLCH variable palette) and shadcn/ui-style primitives (Card, Tabs, Dialog, Table, etc.).",
-    "Most ERP modules beyond auth/profile/Stripe are currently implemented as UI scaffolds with stable query keys and planned invalidation patterns, but missing backend implementations."
+    "Frontend uses TanStack Router for client-side routing and @tanstack/react-query for data fetching, caching, polling (refetchInterval), and mutation-driven cache invalidation.",
+    "Provider-driven composition: InternetIdentityProvider, ThemeProvider (next-themes), QueryClientProvider, CartProvider, OrganizationProvider, and WalletConnectorProvider wrap the app.",
+    "Identity-aware canister actor creation: useActor builds an anonymous or authenticated actor and triggers access-control initialization on authenticated actor creation; it also invalidates/refetches other queries when the actor changes.",
+    "Backend is a Motoko actor composed via mixins (authorization + blob-storage maintenance) with additional modules for HTTP outcalls and Stripe integration.",
+    "Server-side RBAC is centralized in authorization/access-control.mo and exposed via mixin methods (isCallerAdmin, getCallerUserRole, assignCallerUserRole).",
+    "Stripe integration is implemented in Motoko using IC management canister HTTP outcalls with a response transform that strips response headers.",
+    "Wallet connectivity is handled entirely in-browser via a connector abstraction over window.ic providers (Plug/Oisy), with a React context managing selection, availability, and connection state.",
+    "BigInt is used for money and timestamps across the UI; components frequently convert BigInt to Number for display and date formatting (nanoseconds → milliseconds).",
+    "Client persistence: cart items stored in localStorage; active organization stored in localStorage; admin secret token extracted from URL hash and persisted in sessionStorage with hash cleanup.",
+    "UI is built with Tailwind CSS and shadcn/ui-style primitives (Card, Tabs, Dialog, Table, etc.) plus lucide-react icons."
   ],
   "known_issues": [
-    "Most React Query hooks in frontend/src/hooks/useQueries.ts are placeholders (returning empty arrays/null, disabled queries, or throwing “Backend method not yet implemented”), causing many UI actions to fail at runtime.",
-    "Backend implements only a small subset of the declared ERP domain APIs (notably RBAC initialization/queries, user profile get/save, getOrganization, and Stripe methods); list/create/update/delete flows for most modules are missing.",
-    "Access control initialization depends on the CAFFEINE_ADMIN_TOKEN environment variable; missing configuration will trap during _initializeAccessControlWithSecret.",
-    "AccessControl.getUserRole traps with “User is not registered” for authenticated callers if initialization does not register them, potentially breaking authenticated flows.",
-    "Stripe request body builder writes shipping_address_collection[allowed_countries][0] for every country, likely overwriting entries and effectively sending only one allowed country.",
-    "Stripe urlEncode is incomplete (only replaces space/&/=), which may generate invalid x-www-form-urlencoded bodies for other reserved characters.",
-    "Wallet balances/amounts are converted from bigint to JS Number in multiple UI components, risking precision loss for large values.",
-    "OrganizationProvider/useListOrganizations are mocked to return [], so organization switching and org-scoped views cannot function end-to-end.",
-    "There are two Tailwind variable files (frontend/index.css and frontend/src/index.css) with different palettes, creating ambiguity about which theme variables are intended.",
-    "Platform/build execution often fails when a requested change is interpreted as cross-cutting (wallets+transactions+events+migrations), requiring ultra-small, single-purpose steps to succeed."
+    "Most React Query hooks in frontend/src/hooks/useQueries.ts are placeholders (return empty arrays/null, are disabled, or throw “Backend method not yet implemented”), so many UI actions (products, categories, orders, wallets, CRM, HRMS) are non-functional at runtime.",
+    "Backend state (organizations, profiles, etc.) is stored in in-memory Maps/vars without stable storage (no preupgrade/postupgrade handling shown), so data will be lost on canister upgrade.",
+    "Access control initialization depends on the CAFFEINE_ADMIN_TOKEN environment variable; missing configuration traps during _initializeAccessControlWithSecret.",
+    "AccessControl.getUserRole traps with “User is not registered” if initialization was not performed for a principal, which can break authenticated flows if actor init is skipped/fails.",
+    "Stripe checkout body builder uses shipping_address_collection[allowed_countries][0] for every country, likely resulting in only one effective allowed country.",
+    "Stripe urlEncode implementation is incomplete (only replaces space, &, =) and may generate invalid x-www-form-urlencoded bodies for other reserved characters.",
+    "blob-storage/Storage.mo reads CAFFFEINE_STORAGE_CASHIER_PRINCIPAL (note spelling), which may not match the intended environment variable name and can trap at runtime.",
+    "Organization.memberCount/adminCount are set at creation time but are not updated when members/roles change, so counts can become inaccurate.",
+    "removeOrganizationMember forbids removing admin members and there is no demonstrated flow to transfer/demote admin rights within an organization.",
+    "UI converts BigInt monetary values to JS Number in multiple places, risking precision loss for large balances/amounts."
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "gameProjectType": "none",
   "projectName": "CitizensCo UniversalERP",
   "clarification_mode": "instant",

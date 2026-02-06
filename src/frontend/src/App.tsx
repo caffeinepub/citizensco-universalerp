@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import StripeSetupModal from './components/StripeSetupModal';
+import DeploymentReadinessBanner from './components/DeploymentReadinessBanner';
 import StorefrontPage from './pages/StorefrontPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CrmDashboard from './pages/CrmDashboard';
@@ -24,6 +25,7 @@ function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+      <DeploymentReadinessBanner />
       <main className="flex-1">
         <Outlet />
       </main>

@@ -170,6 +170,12 @@ export interface Attendance {
     employeeId: string;
     clockInTime: Time;
 }
+export interface OrganizationMember {
+    organizationId: string;
+    userId: Principal;
+    joinedAt: Time;
+    roles: Array<OrganizationRole>;
+}
 export interface Order {
     id: string;
     status: string;
@@ -239,6 +245,17 @@ export interface Product {
     price: bigint;
     digital: boolean;
 }
+export interface Category {
+    id: string;
+    name: string;
+    parentId?: string;
+}
+export interface DeploymentReadinessStatus {
+    accessControlInitialized: boolean;
+    stripeConfigured: boolean;
+    message: string;
+    recommendations: Array<string>;
+}
 export enum EmployeeStatus {
     onLeave = "onLeave",
     active = "active",
@@ -250,6 +267,11 @@ export enum LeadStage {
     closed = "closed",
     contacted = "contacted",
     qualified = "qualified"
+}
+export enum OrganizationRole {
+    org_employee = "org_employee",
+    org_manager = "org_manager",
+    org_admin = "org_admin"
 }
 export enum PerformanceReviewStatus {
     notStarted = "notStarted",
@@ -282,20 +304,25 @@ export enum Variant_present_leave_absent {
     absent = "absent"
 }
 export interface backendInterface {
+    addOrganizationMember(orgId: string, user: Principal, roles: Array<OrganizationRole>): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
+    createOrganization(name: string, description: string | null): Promise<Organization>;
     getAttendance(_attendanceId: string): Promise<Attendance | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getContact(_contactId: string): Promise<Contact | null>;
     getCrmTask(_taskId: string): Promise<CrmTask | null>;
     getDepartment(_departmentId: string): Promise<Department | null>;
+    getDeploymentReadiness(): Promise<DeploymentReadinessStatus>;
     getEmployee(_employeeId: string): Promise<Employee | null>;
     getLead(_leadId: string): Promise<Lead | null>;
     getLeaveRequest(_leaveId: string): Promise<LeaveRequest | null>;
     getOpportunity(_opportunityId: string): Promise<Opportunity | null>;
     getOrder(_orderId: string): Promise<Order | null>;
     getOrganization(_orgId: string): Promise<Organization | null>;
+    getOrganizationMembers(orgId: string): Promise<Array<OrganizationMember>>;
+    getOrganizations(): Promise<Array<Organization>>;
     getPayroll(_payrollId: string): Promise<Payroll | null>;
     getPerformanceRecord(_recordId: string): Promise<PerformanceRecord | null>;
     getProduct(_productId: string): Promise<Product | null>;
@@ -306,7 +333,9 @@ export interface backendInterface {
     getWalletTransaction(_transactionId: TransactionId): Promise<WalletTransaction | null>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
+    removeOrganizationMember(orgId: string, user: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateOrganizationMemberRoles(orgId: string, user: Principal, roles: Array<OrganizationRole>): Promise<void>;
 }

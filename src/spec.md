@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Complete the backend canister upgrade lifecycle plumbing so wallet-domain state is preserved across upgrades and migrated via `Migration.run(...)` without breaking existing public APIs.
+**Goal:** Make post-migration deployments resilient by avoiding traps when access-control secrets are missing, and provide clear readiness diagnostics in both backend and frontend.
 
 **Planned changes:**
-- Update `backend/main.mo` upgrade hooks (`preupgrade`/`postupgrade`) to safely persist wallet-domain stable state and route it through `Migration.run({ wallets; walletTransactions; walletEvents })` during `system func postupgrade()`.
-- Add or update `backend/migration.mo` to export a pure `Migration.run(...)` function that accepts and returns the wallet-domain state object (`wallets`, `walletTransactions`, `walletEvents`), including a no-op migration path.
-- Ensure `backend/main.mo` compiles cleanly and all existing public method names/signatures remain backward-compatible.
+- Update backend access-control initialization so install/upgrade succeeds even when required secrets (e.g., `CAFFEINE_ADMIN_TOKEN`) are missing/invalid, leaving the canister running in a safe uninitialized state.
+- Add a backend readiness/status API that reports (at minimum) whether access control is initialized and whether Stripe is configured, and is safe to call without trapping even when partially configured.
+- Add a frontend UI status panel/banner that displays readiness results with English messages and recommended next actions when prerequisites are missing (e.g., admin setup required; Stripe not configured), without editing immutable frontend paths.
+- Add a short “Activity 2 deployment checklist” document with numbered steps (including Step 6 deploy and Step 7 publish) and explicit guidance to verify readiness before publishing and avoid mid-step manual changes.
 
-**User-visible outcome:** No UI changes; existing wallet-related behavior and data remain intact across canister upgrades, with migrations applied automatically during upgrade.
+**User-visible outcome:** After deploying, users/admins can view a clear readiness status in the app (and via a backend endpoint) explaining why the deployment may not be fully operational, and can follow a documented checklist to safely proceed with Activity 2 deployment steps.

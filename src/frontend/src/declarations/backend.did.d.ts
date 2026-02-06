@@ -130,6 +130,15 @@ export interface Organization {
   'adminCount' : bigint,
 }
 export type OrganizationId = string;
+export interface OrganizationMember {
+  'organizationId' : string,
+  'userId' : Principal,
+  'joinedAt' : Time,
+  'roles' : Array<OrganizationRole>,
+}
+export type OrganizationRole = { 'org_employee' : null } |
+  { 'org_manager' : null } |
+  { 'org_admin' : null };
 export interface Payroll {
   'id' : string,
   'salary' : bigint,
@@ -277,11 +286,16 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addOrganizationMember' : ActorMethod<
+    [string, Principal, Array<OrganizationRole>],
+    undefined
+  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createCheckoutSession' : ActorMethod<
     [Array<ShoppingItem>, string, string],
     string
   >,
+  'createOrganization' : ActorMethod<[string, [] | [string]], Organization>,
   'getAttendance' : ActorMethod<[string], [] | [Attendance]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -294,6 +308,8 @@ export interface _SERVICE {
   'getOpportunity' : ActorMethod<[string], [] | [Opportunity]>,
   'getOrder' : ActorMethod<[string], [] | [Order]>,
   'getOrganization' : ActorMethod<[string], [] | [Organization]>,
+  'getOrganizationMembers' : ActorMethod<[string], Array<OrganizationMember>>,
+  'getOrganizations' : ActorMethod<[], Array<Organization>>,
   'getPayroll' : ActorMethod<[string], [] | [Payroll]>,
   'getPerformanceRecord' : ActorMethod<[string], [] | [PerformanceRecord]>,
   'getProduct' : ActorMethod<[string], [] | [Product]>,
@@ -307,9 +323,14 @@ export interface _SERVICE {
   >,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
+  'removeOrganizationMember' : ActorMethod<[string, Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateOrganizationMemberRoles' : ActorMethod<
+    [string, Principal, Array<OrganizationRole>],
+    undefined
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

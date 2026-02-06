@@ -1,18 +1,18 @@
-import Map "mo:core/Map";
-import Principal "mo:core/Principal";
-import List "mo:core/List";
-import Iter "mo:core/Iter";
-import Text "mo:core/Text";
-import Time "mo:core/Time";
-import Array "mo:core/Array";
-import Nat "mo:core/Nat";
-import Runtime "mo:core/Runtime";
-import OutCall "http-outcalls/outcall";
-import Stripe "stripe/stripe";
 import AccessControl "authorization/access-control";
-import Storage "blob-storage/Storage";
+import Array "mo:core/Array";
+import Iter "mo:core/Iter";
+import List "mo:core/List";
+import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
+import Nat "mo:core/Nat";
+import OutCall "http-outcalls/outcall";
+import Principal "mo:core/Principal";
+import Runtime "mo:core/Runtime";
+import Storage "blob-storage/Storage";
+import Stripe "stripe/stripe";
+import Text "mo:core/Text";
+import Time "mo:core/Time";
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -38,7 +38,7 @@ actor {
   };
 
   public type OrganizationMember = {
-    organizationId : OrganizationId;
+    organizationId : Text;
     userId : Principal;
     roles : [OrganizationRole];
     joinedAt : Time.Time;
@@ -293,11 +293,11 @@ actor {
   let payrolls = Map.empty<Text, Payroll>();
   let performanceRecords = Map.empty<Text, PerformanceRecord>();
 
-  stable var wallets = Map.empty<WalletId, Wallet>();
-  stable var walletTransactions = Map.empty<TransactionId, WalletTransaction>();
-  stable var walletEvents = Map.empty<WalletEventId, WalletEvent>();
-
   var stripeConfig : ?Stripe.StripeConfiguration = null;
+
+  var wallets = Map.empty<WalletId, Wallet>();
+  var walletTransactions = Map.empty<TransactionId, WalletTransaction>();
+  var walletEvents = Map.empty<WalletEventId, WalletEvent>();
 
   private func isOrganizationMember(caller : Principal, orgId : Text) : Bool {
     switch (organizationMembers.get(orgId)) {
@@ -705,5 +705,185 @@ actor {
 
   public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     OutCall.transform(input);
+  };
+
+  public query ({ caller }) func getOrganizations() : async [Organization] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can list organizations");
+    };
+
+    let isGlobalAdmin = AccessControl.isAdmin(accessControlState, caller);
+    var result : [Organization] = [];
+
+    for ((_, org) in organizations.entries()) {
+      if (isGlobalAdmin or isOrganizationMember(caller, org.id)) {
+        result := result.concat([org]);
+      };
+    };
+
+    result;
+  };
+
+  public shared ({ caller }) func createOrganization(name : Text, description : ?Text) : async Organization {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create organizations");
+    };
+
+    let orgId = name # "_" # Time.now().toText();
+    let org : Organization = {
+      id = orgId;
+      name;
+      description;
+      createdBy = caller;
+      createdAt = Time.now();
+      updatedAt = Time.now();
+      memberCount = 1;
+      adminCount = 1;
+    };
+
+    organizations.add(orgId, org);
+
+    let adminMember : OrganizationMember = {
+      organizationId = orgId;
+      userId = caller;
+      roles = [#org_admin];
+      joinedAt = Time.now();
+    };
+
+    let members = List.fromArray<OrganizationMember>([adminMember]);
+    organizationMembers.add(orgId, members);
+    org;
+  };
+
+  public query ({ caller }) func getOrganizationMembers(orgId : Text) : async [OrganizationMember] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view organization members");
+    };
+    if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: You must be a member or admin of this organization to view members");
+    };
+    switch (organizationMembers.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?members) {
+        members.toArray();
+      };
+    };
+  };
+
+  public shared ({ caller }) func addOrganizationMember(orgId : Text, user : Principal, roles : [OrganizationRole]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can add organization members");
+    };
+    if (not isOrganizationAdmin(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only organization admins can add members");
+    };
+
+    let newMember : OrganizationMember = {
+      organizationId = orgId;
+      userId = user;
+      roles = roles;
+      joinedAt = Time.now();
+    };
+
+    let currentMembers = switch (organizationMembers.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?members) { members };
+    };
+
+    let alreadyMember = currentMembers.any(
+      func(m : OrganizationMember) : Bool {
+        Principal.equal(m.userId, user)
+      }
+    );
+
+    if (alreadyMember) {
+      Runtime.trap("User is already a member of this organization");
+    };
+
+    let currentMembersArray = currentMembers.toArray();
+    let updatedMembers = List.fromArray<OrganizationMember>(
+      [newMember].concat(currentMembersArray)
+    );
+    organizationMembers.add(orgId, updatedMembers);
+  };
+
+  public shared ({ caller }) func removeOrganizationMember(orgId : Text, user : Principal) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can remove organization members");
+    };
+    if (not isOrganizationAdmin(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only organization admins can remove members");
+    };
+
+    switch (organizationMembers.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?members) {
+        let memberToRemove = members.find(
+          func(m : OrganizationMember) : Bool {
+            Principal.equal(m.userId, user)
+          }
+        );
+
+        switch (memberToRemove) {
+          case (null) { Runtime.trap("User is not a member of this organization") };
+          case (?member) {
+            let isAdmin = member.roles.find<OrganizationRole>(
+              func(role : OrganizationRole) : Bool { role == #org_admin }
+            ) != null;
+
+            if (isAdmin) {
+              Runtime.trap("Cannot remove admin members");
+            };
+
+            let filteredMembers = members.filter(
+              func(m : OrganizationMember) : Bool {
+                not Principal.equal(m.userId, user)
+              }
+            );
+            organizationMembers.add(orgId, filteredMembers);
+          };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateOrganizationMemberRoles(orgId : Text, user : Principal, roles : [OrganizationRole]) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update organization member roles");
+    };
+    if (not isOrganizationAdmin(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only organization admins can update member roles");
+    };
+
+    switch (organizationMembers.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?members) {
+        let memberExists = members.any(
+          func(m : OrganizationMember) : Bool {
+            Principal.equal(m.userId, user)
+          }
+        );
+
+        if (not memberExists) {
+          Runtime.trap("User is not a member of this organization");
+        };
+
+        let updatedMembers = members.map<OrganizationMember, OrganizationMember>(
+          func(member : OrganizationMember) : OrganizationMember {
+            if (Principal.equal(member.userId, user)) {
+              {
+                organizationId = member.organizationId;
+                userId = member.userId;
+                roles = roles;
+                joinedAt = member.joinedAt;
+              };
+            } else {
+              member;
+            };
+          }
+        );
+        organizationMembers.add(orgId, updatedMembers);
+      };
+    };
   };
 };

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useActor } from '../hooks/useActor';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useListOrganizations } from '../hooks/useQueries';
 import type { Organization } from '../backend';
 
 interface OrganizationContextType {
@@ -16,19 +15,11 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(u
 const STORAGE_KEY = 'activeOrganizationId';
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
-  const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
   const [activeOrganization, setActiveOrganizationState] = useState<Organization | null>(null);
 
-  // Fetch organizations for the current user - Mock implementation until backend method is available
-  const { data: organizations = [], isLoading } = useQuery<Organization[]>({
-    queryKey: ['organizations'],
-    queryFn: async () => {
-      // TODO: Backend method listOrganizations not yet implemented
-      return [];
-    },
-    enabled: !!actor && !actorFetching && !!identity,
-  });
+  // Fetch organizations for the current user using real backend method
+  const { data: organizations = [], isLoading } = useListOrganizations();
 
   // Hydrate active organization from localStorage and validate against current org list
   useEffect(() => {

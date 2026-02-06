@@ -1,57 +1,110 @@
 {
   "kind": "build_request",
-  "title": "Activity 2 Next Step: Implement wallet-domain upgrade migration plumbing (preupgrade/postupgrade + migration.run)",
+  "title": "Add safe post-migration deployment readiness checks and non-trapping access-control initialization",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix and complete canister upgrade lifecycle plumbing in `backend/main.mo` so wallet-domain state is safely persisted across upgrades and routed through `Migration.run(...)` during `system func postupgrade()`, while keeping all existing public APIs and method signatures backward-compatible (RBAC, user profiles, organization, Stripe, and existing wallet query methods).",
+      "text": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-3",
+          "msg-4",
+          "msg-5"
         ],
         "quotes": [
-          "Yes to next step of Activity 2"
+          "6. Deploy this new build to the network. (FAILED — this is the point of interruption)",
+          "Please say which steps in Activity 2 is outstanding and how do we proceed while avoiding errors.",
+          "Proceed with step 6"
         ]
       },
       "acceptanceCriteria": [
-        "`backend/main.mo` compiles without unresolved references (e.g., `Migration` is properly imported/defined).",
-        "On upgrade, the canister calls `Migration.run({ wallets; walletTransactions; walletEvents })` and assigns the returned state back to the stable vars.",
-        "All existing public methods keep the same names and signatures as before this change."
+        "Installing/upgrading the canister succeeds even when CAFFEINE_ADMIN_TOKEN (or any access-control secret used by the project) is not set.",
+        "When secrets are missing, privileged methods remain protected (no privilege escalation), and the canister does not trap on startup.",
+        "A clear, deterministic internal state indicates whether access control has been initialized successfully."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add or update `backend/migration.mo` to export a stable `run(...)` entrypoint that accepts the pre-upgrade wallet-domain state `{ wallets; walletTransactions; walletEvents }` and returns the post-migration wallet-domain state in a forward-compatible structure suitable for later Activity 2 organization-scoping steps.",
+      "text": "Add backend APIs to support a deployment/readiness check for Activity 2 Step 6, including: (1) whether access control is initialized, (2) whether Stripe is configured, and (3) any other critical runtime prerequisites needed for the app to function without trapping.",
       "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-3",
+          "msg-4"
+        ],
+        "quotes": [
+          "Only Step 6 remains: deploy the post‑migration build.",
+          "How to proceed safely: 1. I will attempt Step 6 again cleanly."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A caller can query a single backend method to get a structured readiness status without triggering traps.",
+        "The readiness response includes at least: access-control-initialized status and stripe-configured status (existing Stripe state is already tracked).",
+        "The readiness method is safe to call even when the system is partially configured (no traps)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-3"
         ],
         "quotes": [
-          "Yes to next step of Activity 2"
+          "Please say which steps in Activity 2 is outstanding and how do we proceed while avoiding errors."
         ]
       },
       "acceptanceCriteria": [
-        "`backend/migration.mo` exists and can be imported from `backend/main.mo`.",
-        "`Migration.run(...)` is a pure migration function that returns a complete wallet-domain state object containing `wallets`, `walletTransactions`, and `walletEvents`.",
-        "A no-op migration path is supported (i.e., an upgrade where no structural changes are needed keeps existing wallet data intact)."
+        "The app shows a clear status panel/banner when critical prerequisites are not met (at minimum: access control not initialized; Stripe not configured).",
+        "User-facing text is in English.",
+        "The UI does not require editing any files under frontend/src/components/ui or other immutable paths."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
+      "target": "unknown",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "I intend for us to maintain the pattern of confirming at each step by step. Please name & number each step."
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new documentation file exists in the repository describing the numbered Activity 2 steps (including Step 6 deploy, Step 7 publish) and what to verify before continuing.",
+        "The checklist includes a specific instruction to verify the new readiness status before attempting publish.",
+        "All user-facing/document text is English."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor architecture with all Motoko logic in `backend/main.mo` (aside from the dedicated migration module in `backend/migration.mo`).",
-    "Generate/modify `backend/migration.mo` only as needed for upgrading existing stable state (conditional migration policy).",
-    "Use English for any user-facing text."
+    "Backend must remain a single Motoko actor (all logic in backend/main.mo; add migration.mo only if state upgrade handling is required).",
+    "Do not edit any frontend files under frontend immutablePaths (including frontend/src/components/ui, frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
   ],
   "nonGoals": [
-    "Do not implement additional wallet CRUD/list APIs or frontend wiring as part of this step.",
-    "Do not change UI styling or introduce new UI features in this step.",
-    "Do not introduce new backend services, external databases, or non-Motoko backend code."
+    "Implementing currently-scaffolded ERP domain APIs (products, categories, orders, wallets, CRM, HRMS) beyond readiness/status reporting.",
+    "Adding third-party auth providers or external databases.",
+    "Changing the Stripe checkout feature behavior beyond exposing configuration/readiness status."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [
+      "Use English for any user-facing text"
+    ],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }
