@@ -894,7 +894,10 @@ actor {
     };
   };
 
-  public query func isStripeConfigured() : async Bool {
+  public query ({ caller }) func isStripeConfigured() : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can check Stripe configuration");
+    };
     stripeConfig != null;
   };
 

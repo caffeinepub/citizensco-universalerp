@@ -1,14 +1,10 @@
 # Specification
 
 ## Summary
-**Goal:** Deploy the post-migration build (Deployment Checklist Step 6) and verify deployment readiness in the live UI as an admin user.
+**Goal:** Add an admin-only “Next step” call-to-action in the Deployment Readiness banner that links to the existing Activity 3 requirements page.
 
 **Planned changes:**
-- Deploy the post-migration build to the network and confirm the deployment completes without errors.
-- Verify the deployed app is accessible at the deployment URL and loads without runtime errors.
-- Log in as an admin and verify the in-app deployment readiness status, including access control initialization and Stripe configuration status.
-- If access control is not initialized, document that `CAFFEINE_ADMIN_TOKEN` must be set and the backend redeployed as needed.
-- If Stripe is not configured, verify the admin can navigate to the admin dashboard and complete Stripe setup.
-- Confirm all readiness checks are passing before stopping (do not proceed to Step 7).
+- Update the admin-only `DeploymentReadinessBanner` UI to include an additional CTA button/link (e.g., “Go to Activity 3 Requirements”).
+- Wire the CTA to navigate to the existing `/activity-3` route while keeping existing readiness actions intact and ensuring the banner remains usable on small screens.
 
-**User-visible outcome:** The application is reachable at the deployment URL, and an admin can log in to view and confirm deployment readiness status (including access control initialization and Stripe configuration) before proceeding further.
+**User-visible outcome:** Admin users who see the Deployment Readiness banner can click a new “next step” CTA to go directly to the Activity 3 requirements page; non-admin users see no change.

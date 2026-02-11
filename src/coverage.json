@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-11T13:21:11.936Z",
+  "generatedAt": "2026-02-11T17:24:19.853Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,37 +11,24 @@
     "implemented": 1,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
+        "id": "REQ-3",
+        "summary": "Update the admin-only DeploymentReadinessBanner to include a clear “next step” call-to-action that navigates to the existing Activity 3 requirements capture route \"/activity-3\".",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/DeploymentReadinessBanner.tsx",
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+          "frontend/src/components/DeploymentReadinessBanner.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/DeploymentReadinessBanner.tsx",
-          "frontend/src/pages/AdminDashboard.tsx",
-          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+          "frontend/src/components/DeploymentReadinessBanner.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
-    "frontend/src/backend.d.ts",
     "frontend/src/components/DeploymentReadinessBanner.tsx",
-    "frontend/src/components/hrms/EmployeeManagement.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminDashboard.tsx",
-    "frontend/src/pages/CartPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

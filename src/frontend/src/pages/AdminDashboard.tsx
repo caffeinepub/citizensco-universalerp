@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DollarSign, ShoppingCart, Users, TrendingUp, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, ShoppingCart, Users, TrendingUp, CheckCircle2, XCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import ProductManagement from '../components/admin/ProductManagement';
 import CategoryManagement from '../components/admin/CategoryManagement';
 import OrderManagement from '../components/admin/OrderManagement';
@@ -12,6 +13,7 @@ import OrganizationManagement from '../components/admin/OrganizationManagement';
 import WalletSummary from '../components/WalletSummary';
 import WalletManagement from '../components/WalletManagement';
 import { useNavigate } from '@tanstack/react-router';
+import { getDeploymentStepMessaging } from '../utils/deploymentChecklistStepMessaging';
 
 export default function AdminDashboard() {
   const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
@@ -54,13 +56,16 @@ export default function AdminDashboard() {
   }
 
   const allReady = readiness?.accessControlInitialized && readiness?.stripeConfigured;
+  const stepMessaging = readiness
+    ? getDeploymentStepMessaging(readiness.accessControlInitialized, readiness.stripeConfigured)
+    : null;
 
   return (
     <div className="container py-8">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
 
       {/* Deployment Readiness Section */}
-      {!readinessLoading && readiness && (
+      {!readinessLoading && readiness && stepMessaging && (
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -76,7 +81,29 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Step Status */}
+              <div className={`p-4 rounded-lg border ${allReady ? 'bg-green-50 border-green-200' : 'bg-destructive/10 border-destructive/30'}`}>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold text-sm">Completed:</span>
+                    <span className={`text-sm font-medium ${allReady ? 'text-green-600' : 'text-destructive'}`}>
+                      {stepMessaging.completedStep}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-semibold text-sm">Next Step:</span>
+                    <span className={`text-sm font-medium ${allReady ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {stepMessaging.nextStep}
+                    </span>
+                  </div>
+                  <p className={`text-sm mt-2 ${!allReady ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {stepMessaging.statusMessage}
+                  </p>
+                </div>
+              </div>
+
+              {/* Readiness Checks */}
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   {readiness.accessControlInitialized ? (
@@ -122,20 +149,32 @@ export default function AdminDashboard() {
               {allReady ? (
                 <Alert>
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertTitle>All Systems Ready</AlertTitle>
+                  <AlertTitle>Step 6 Complete — Ready for Step 7</AlertTitle>
                   <AlertDescription>
-                    Your application is fully configured and ready for production deployment.
+                    Your application is fully configured and ready for production deployment. You may now proceed with Step 7 (Publish Live).
                   </AlertDescription>
                 </Alert>
               ) : (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Configuration Required</AlertTitle>
+                  <AlertTitle>Step 6 Blocked — Do Not Run Step 7</AlertTitle>
                   <AlertDescription>
-                    Complete the required configuration steps above before deploying to production.
+                    Complete the required configuration steps above before attempting Step 7. Do not publish live until all checks pass.
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Activity 3 CTA */}
+              <div className="pt-2">
+                <Button
+                  onClick={() => navigate({ to: '/activity-3' })}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  Go to Activity 3 Requirements
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

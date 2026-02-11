@@ -1,37 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Execute Deployment Checklist Step 6: Deploy Post-Migration Build and Verify Readiness",
+  "title": "Add an admin “Next step” CTA in the Deployment Readiness banner to navigate to Activity 3 requirements",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
-      "target": "unknown",
+      "id": "REQ-3",
+      "text": "Update the admin-only DeploymentReadinessBanner to include a clear “next step” call-to-action that navigates to the existing Activity 3 requirements capture route \"/activity-3\".",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "Yes Step 6"
+          "Yes next step"
         ]
       },
       "acceptanceCriteria": [
-        "Post-migration build is deployed to the network without deployment errors.",
-        "The deployed application is accessible at the deployment URL and loads without runtime errors.",
-        "An admin user can log in and view the deployment readiness banner/status in the UI.",
-        "Access control initialization status is verified in the UI; if not initialized, deployment notes indicate `CAFFEINE_ADMIN_TOKEN` must be set and backend redeployed as needed.",
-        "Stripe configuration status is verified in the UI; if not configured, admin can navigate to the admin dashboard and complete Stripe setup.",
-        "All readiness checks are confirmed as passing before proceeding to Step 7."
+        "When an admin user is logged in and the DeploymentReadinessBanner is visible, the banner includes a button/link labeled in English (e.g., \"Go to Activity 3 Requirements\").",
+        "Clicking the button navigates to the existing route \"/activity-3\" (Activity3RequirementsPage renders).",
+        "The CTA does not replace existing readiness actions (e.g., \"Go to Admin Dashboard\" when Stripe is not configured) and does not break the banner layout on small screens.",
+        "Non-admin users continue to never see the DeploymentReadinessBanner or the new CTA."
       ]
     }
   ],
   "constraints": [
-    "Do not proceed to Deployment Checklist Step 7 (Publish Live) until all Step 6 readiness checks pass in the UI.",
-    "Use English for any user-facing text."
+    "Do not edit files under frontend/src/components/ui (compose existing shadcn components instead).",
+    "Do not modify immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui."
   ],
   "nonGoals": [
-    "Publishing the application live (Deployment Checklist Step 7).",
-    "Adding new product features unrelated to deployment readiness verification."
+    "Do not add new backend methods or change backend authorization logic.",
+    "Do not change the existing Activity 3 requirements form fields or its copy/download behavior.",
+    "Do not change the deployment checklist logic beyond adding the new navigation CTA in the banner."
   ],
   "imageRequirements": {
     "required": [],

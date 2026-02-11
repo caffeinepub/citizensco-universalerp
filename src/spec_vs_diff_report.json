@@ -1,89 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-11T13:21:11.933Z",
-  "summary": "The diff adds UI and client-side logic to display an admin-only deployment readiness banner/section (checking access control initialization and Stripe configuration, with recommendations including CAFFEINE_ADMIN_TOKEN and navigation to Admin Dashboard). However, the BuildRequest’s core Step 6 requirements about actually deploying the post-migration build to the network and confirming deployment/URL/runtime readiness are not implemented in code changes (and cannot be verified from the diff). The diff also includes multiple unrelated product features (HRMS employee management, wallets route, ecommerce/cart/checkout changes, Stripe setup modal, etc.) that go beyond deployment readiness verification.",
+  "generatedAt": "2026-02-11T17:24:19.851Z",
+  "summary": "REQ-3 requests adding an admin-only “next step” CTA in DeploymentReadinessBanner that navigates to \"/activity-3\" without replacing existing actions or breaking layout. The diff shows admin-only gating in DeploymentReadinessBanner, but the provided truncation does not include any visible CTA/link to \"/activity-3\", so the core navigation/button requirement cannot be verified from the evidence. Additionally, an unrelated set of features is described/added in frontend-file-summaries.txt (e.g., /wallets route, cart, storefront, HRMS/CRM hooks), which were not requested.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Deploy the post-migration build to the network and confirm deployment completes successfully without deployment errors.",
-      "reason": "The diff only shows code/UI/documentation changes; there is no evidence of deployment execution, CI/CD scripts, deployment commands, or recorded deployment results.",
+      "id": "REQ-3",
+      "requirement": "DeploymentReadinessBanner includes a clear English-labeled CTA (e.g., \"Go to Activity 3 Requirements\") that navigates to the existing route \"/activity-3\" without replacing existing readiness actions and without breaking small-screen layout.",
+      "reason": "In the visible portion of DeploymentReadinessBanner.tsx, there is admin-only gating and readiness messaging, but no evidence of a button/link labeled for Activity 3 or navigation to \"/activity-3\". The file is truncated before the relevant section could be confirmed.",
       "evidence": [
-        "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
-      ]
-    },
-    {
-      "id": "REQ-1",
-      "requirement": "Confirm the deployed application is accessible at the deployment URL and loads without runtime errors.",
-      "reason": "No evidence in the diff of runtime verification, smoke tests, monitoring checks, or documented deployment URL/accessibility confirmation.",
-      "evidence": [
-        "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
-      ]
-    },
-    {
-      "id": "REQ-1",
-      "requirement": "All readiness checks are confirmed as passing before proceeding to Step 7 (Publish Live).",
-      "reason": "The diff adds readiness UI, but does not show any gating mechanism, enforcement, or recorded confirmation that checks are passing; the checklist doc still marks Step 6 as PENDING in the provided snippet.",
-      "evidence": [
-        "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+        "frontend/src/components/DeploymentReadinessBanner.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "HRMS Employee Management CRUD UI (employees/departments, dialogs, status badges, add/edit/delete flows).",
-      "reason": "Not requested by Step 6 deployment readiness verification; explicitly outside the deployment-readiness scope.",
+      "description": "Large set of unrelated frontend features (e.g., new /wallets route, ecommerce cart/storefront pages, HRMS/CRM hooks, header/footer changes, Stripe setup modal, etc.)",
+      "reason": "These features are not part of the BuildRequest (which only asks for a new CTA in DeploymentReadinessBanner). The only evidence present is that the file summaries were updated to describe these additions.",
       "evidence": [
-        "frontend/src/components/hrms/EmployeeManagement.tsx"
+        "frontend-file-summaries.txt (truncated)"
       ]
     },
     {
-      "description": "Ecommerce cart/checkout enhancements including ICP wallet payment flow and Stripe checkout session navigation.",
-      "reason": "Not requested by Step 6 readiness checks; introduces/changes shopping and payment UX beyond readiness verification.",
+      "description": "AdminDashboard described as having a new CTA button to navigate to Activity 3 requirements page",
+      "reason": "The BuildRequest specifically targets adding the CTA in the admin-only DeploymentReadinessBanner, not in AdminDashboard. The diff evidence only shows this claim inside the file summaries.",
       "evidence": [
-        "frontend/src/pages/CartPage.tsx"
-      ]
-    },
-    {
-      "description": "New /wallets route and wallet-related navigation/UI (Wallet Overview / Wallets button).",
-      "reason": "Not requested; unrelated to deployment readiness verification.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "StripeSetupModal (admin-only modal for configuring Stripe with secret key and allowed countries, auto-shown when not configured).",
-      "reason": "BuildRequest only requires verifying Stripe configuration status and ability to navigate to admin dashboard to complete setup; implementing a new setup modal is beyond that scope.",
-      "evidence": [
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Broad additions/changes to numerous React Query hooks including CRM/HRMS dashboard hooks (useGetPipelineDashboard, useGetPendingLeaves, useApproveLeave, useRejectLeave) and extensive mock implementations.",
-      "reason": "Not requested for Step 6; introduces unrelated application functionality.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Backend main.mo expanded with many ERP/ecommerce/CRM/HRMS domain types (Organization/Product/Order/Employee/etc.).",
-      "reason": "Not requested for Step 6 deployment readiness verification; appears to add unrelated domain model code.",
-      "evidence": [
-        "backend/main.mo"
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.62,
   "changed_files": [
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
     "frontend/src/components/DeploymentReadinessBanner.tsx",
-    "frontend/src/components/hrms/EmployeeManagement.tsx",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AdminDashboard.tsx",
-    "frontend/src/pages/CartPage.tsx",
     "project_state.json"
   ]
 }

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Copy, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Activity3Spec, generateBuildInstruction, isSpecEmpty } from '../utils/activity3BuildInstruction';
 
@@ -92,6 +92,39 @@ export default function Activity3RequirementsPage() {
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const handleDownloadMarkdown = () => {
+    if (isSpecEmpty(spec)) {
+      toast.error('Please fill in at least one field before downloading');
+      return;
+    }
+
+    const instruction = generateBuildInstruction(spec);
+    
+    try {
+      // Create a Blob with the markdown content
+      const blob = new Blob([instruction], { type: 'text/markdown;charset=utf-8' });
+      
+      // Create an object URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'activity3-option1-requirements.md';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Requirements downloaded as Markdown file!');
+    } catch (error) {
+      console.error('Failed to download:', error);
+      toast.error('Failed to download file');
     }
   };
 
@@ -224,12 +257,12 @@ export default function Activity3RequirementsPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="role-notes">Role-specific behavior notes (optional)</Label>
+              <Label htmlFor="role-notes">Additional Role Notes</Label>
               <Textarea
                 id="role-notes"
                 value={spec.rolesImpacted.notes}
                 onChange={(e) => updateRoleField('notes', e.target.value)}
-                placeholder="Example: Organization Admins can create and edit projects, while Organization Employees can only view projects assigned to them..."
+                placeholder="Any additional context about role permissions or interactions..."
                 rows={3}
                 className="resize-y mt-2"
               />
@@ -241,7 +274,7 @@ export default function Activity3RequirementsPage() {
           <CardHeader>
             <CardTitle>UI / Pages Impacted</CardTitle>
             <CardDescription>
-              Which pages or UI components will be affected? Select all that apply.
+              Which parts of the user interface will be affected? Select all that apply.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -261,7 +294,7 @@ export default function Activity3RequirementsPage() {
                   <Input
                     value={spec.uiImpacted.newPageDetails}
                     onChange={(e) => updateUiField('newPageDetails', e.target.value)}
-                    placeholder="Page name and route (e.g., Projects page at /projects)"
+                    placeholder="e.g., /projects, /milestones"
                     className="ml-6"
                   />
                 )}
@@ -282,7 +315,7 @@ export default function Activity3RequirementsPage() {
                   <Input
                     value={spec.uiImpacted.existingPageDetails}
                     onChange={(e) => updateUiField('existingPageDetails', e.target.value)}
-                    placeholder="Page name (e.g., Admin Dashboard, CRM Dashboard)"
+                    placeholder="e.g., Dashboard, Admin Panel"
                     className="ml-6"
                   />
                 )}
@@ -325,7 +358,7 @@ export default function Activity3RequirementsPage() {
                   <Input
                     value={spec.uiImpacted.otherDetails}
                     onChange={(e) => updateUiField('otherDetails', e.target.value)}
-                    placeholder="Specify other UI components"
+                    placeholder="Describe other UI components affected"
                     className="ml-6"
                   />
                 )}
@@ -333,12 +366,12 @@ export default function Activity3RequirementsPage() {
             </div>
 
             <div>
-              <Label htmlFor="ui-description">Detailed UI changes description (optional)</Label>
+              <Label htmlFor="ui-description">UI Description</Label>
               <Textarea
                 id="ui-description"
                 value={spec.uiImpacted.uiDescription}
                 onChange={(e) => updateUiField('uiDescription', e.target.value)}
-                placeholder="Example: Add a Projects button to the header for admins. The Projects page should display a table with columns for project name, deadline, status, and actions. Include a 'New Project' button that opens a dialog form..."
+                placeholder="Describe the UI changes in detail: layout, components, interactions, visual design..."
                 rows={4}
                 className="resize-y mt-2"
               />
@@ -350,7 +383,7 @@ export default function Activity3RequirementsPage() {
           <CardHeader>
             <CardTitle>Backend APIs / Data Needed</CardTitle>
             <CardDescription>
-              What backend methods and data structures are required?
+              What backend changes are required to support this feature?
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -360,8 +393,8 @@ export default function Activity3RequirementsPage() {
                 id="api-new-types"
                 value={spec.backendApis.newDataTypes}
                 onChange={(e) => updateApiField('newDataTypes', e.target.value)}
-                placeholder="Example: Project type with fields: id (Text), name (Text), description (?Text), deadline (Time), status (ProjectStatus enum), organizationId (Text), createdBy (Principal), createdAt (Time)"
-                rows={4}
+                placeholder="List new types, records, or data structures needed..."
+                rows={3}
                 className="resize-y mt-2"
               />
             </div>
@@ -372,19 +405,19 @@ export default function Activity3RequirementsPage() {
                 id="api-new-methods"
                 value={spec.backendApis.newMethods}
                 onChange={(e) => updateApiField('newMethods', e.target.value)}
-                placeholder="Example: createProject(name: Text, description: ?Text, deadline: Time, orgId: Text): async Project; getProjectsByOrganization(orgId: Text): async [Project]; updateProjectStatus(projectId: Text, status: ProjectStatus): async ()"
-                rows={4}
+                placeholder="List new backend methods/functions to be created..."
+                rows={3}
                 className="resize-y mt-2"
               />
             </div>
 
             <div>
-              <Label htmlFor="api-updated-methods">Updated Methods (optional)</Label>
+              <Label htmlFor="api-updated-methods">Updated Methods</Label>
               <Textarea
                 id="api-updated-methods"
                 value={spec.backendApis.updatedMethods}
                 onChange={(e) => updateApiField('updatedMethods', e.target.value)}
-                placeholder="Example: Modify getOrganization() to include projectCount field"
+                placeholder="List existing methods that need to be modified..."
                 rows={3}
                 className="resize-y mt-2"
               />
@@ -396,8 +429,8 @@ export default function Activity3RequirementsPage() {
                 id="api-auth-rules"
                 value={spec.backendApis.authorizationRules}
                 onChange={(e) => updateApiField('authorizationRules', e.target.value)}
-                placeholder="Example: Only organization admins can create/edit/delete projects. Organization members can view projects for their organization. Global admins can access all projects."
-                rows={4}
+                placeholder="Describe access control and permission requirements..."
+                rows={3}
                 className="resize-y mt-2"
               />
             </div>
@@ -406,55 +439,47 @@ export default function Activity3RequirementsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Scope / Affected Modules & Pages (Legacy)</CardTitle>
+            <CardTitle>Legacy Fields</CardTitle>
             <CardDescription>
-              Which parts of the application will be affected? List modules, pages, or components.
+              Additional context fields (optional, for backward compatibility)
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Textarea
-              value={spec.scope}
-              onChange={(e) => updateField('scope', e.target.value)}
-              placeholder="Example: Admin Dashboard, CRM module, new /projects page, Header navigation..."
-              rows={4}
-              className="resize-y"
-            />
-          </CardContent>
-        </Card>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="scope">Scope / Affected Modules & Pages</Label>
+              <Textarea
+                id="scope"
+                value={spec.scope}
+                onChange={(e) => updateField('scope', e.target.value)}
+                placeholder="Which modules, pages, or components are affected?"
+                rows={3}
+                className="resize-y mt-2"
+              />
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Backend / Data Model Changes (Legacy)</CardTitle>
-            <CardDescription>
-              What backend APIs, data structures, or business logic need to be added or modified?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={spec.backendChanges}
-              onChange={(e) => updateField('backendChanges', e.target.value)}
-              placeholder="Example: Add Project type with fields (id, name, deadline, status), createProject() method, getProjectsByOrganization() query..."
-              rows={5}
-              className="resize-y"
-            />
-          </CardContent>
-        </Card>
+            <div>
+              <Label htmlFor="backend-changes">Backend / Data Model Changes</Label>
+              <Textarea
+                id="backend-changes"
+                value={spec.backendChanges}
+                onChange={(e) => updateField('backendChanges', e.target.value)}
+                placeholder="Describe backend changes in detail..."
+                rows={3}
+                className="resize-y mt-2"
+              />
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Frontend / UI Changes (Legacy)</CardTitle>
-            <CardDescription>
-              What UI components, pages, or user interactions need to be implemented?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={spec.frontendChanges}
-              onChange={(e) => updateField('frontendChanges', e.target.value)}
-              placeholder="Example: New ProjectsPage with table view, ProjectForm dialog for create/edit, add 'Projects' button to Header for admins, status badges..."
-              rows={5}
-              className="resize-y"
-            />
+            <div>
+              <Label htmlFor="frontend-changes">Frontend / UI Changes</Label>
+              <Textarea
+                id="frontend-changes"
+                value={spec.frontendChanges}
+                onChange={(e) => updateField('frontendChanges', e.target.value)}
+                placeholder="Describe frontend changes in detail..."
+                rows={3}
+                className="resize-y mt-2"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -462,45 +487,60 @@ export default function Activity3RequirementsPage() {
           <CardHeader>
             <CardTitle>Acceptance Criteria</CardTitle>
             <CardDescription>
-              How will you know when Activity 3 Option 1 is complete? List specific, testable criteria.
+              How will we know when this feature is complete and working correctly?
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
               value={spec.acceptanceCriteria}
               onChange={(e) => updateField('acceptanceCriteria', e.target.value)}
-              placeholder="Example: 1. Admin can create a new project with name and deadline. 2. Projects are listed in a table with status. 3. Non-admin users cannot access project management..."
+              placeholder="List specific, testable criteria that define success..."
               rows={5}
               className="resize-y"
             />
           </CardContent>
         </Card>
 
-        <div className="flex gap-4">
-          <Button onClick={handleCopyInstruction} size="lg" className="flex-1">
-            {copied ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Build-Ready Instruction
-              </>
-            )}
-          </Button>
-          <Button onClick={handleClearDraft} variant="outline" size="lg">
-            Clear Draft
-          </Button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+            <CardDescription>
+              Generate and export your build-ready instruction
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={handleCopyInstruction} disabled={isSpecEmpty(spec)}>
+                {copied ? (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy to Clipboard
+                  </>
+                )}
+              </Button>
 
-        <Alert>
-          <AlertDescription>
-            <strong>Tip:</strong> Fill in as much detail as possible. The more specific your requirements, the better
-            the AI can implement Activity 3 Option 1. Your draft is saved automatically in your browser.
-          </AlertDescription>
-        </Alert>
+              <Button onClick={handleDownloadMarkdown} disabled={isSpecEmpty(spec)} variant="secondary">
+                <Download className="mr-2 h-4 w-4" />
+                Download as Markdown
+              </Button>
+
+              <Button onClick={handleClearDraft} variant="outline">
+                Clear Draft
+              </Button>
+            </div>
+
+            {isSpecEmpty(spec) && (
+              <p className="text-sm text-muted-foreground mt-3">
+                Fill in at least one field to enable copy and download actions.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

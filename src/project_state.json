@@ -7,16 +7,16 @@
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-execute-deployment-checklist-step-6-by-deploying-the-post-migration-build-to-the-network-then-perform-the-checklist-verifications-confirm-deployment-completes-successfully-confirm-the-application-is-accessible-at-the-deployment-url-and-verify-the-in-app-deployment-readiness-status-including-access-control-initialization-status-and-stripe-configuration-status-as-an-admin-user",
-      "title": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
+      "id": "feature-update-the-admin-only-deploymentreadinessbanner-to-include-a-clear-next-step-call-to-action-that-navigates-to-the-existing-activity-3-requirements-capture-route-activity-3",
+      "title": "Update the admin-only DeploymentReadinessBanner to include a clear “next step” call-to-action that navigates to the existing Activity 3 requirements capture route \"/activity-3\".",
       "reqIds": [
-        "REQ-1"
+        "REQ-3"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [],
-  "projectName": "Execute Deployment Checklist Step 6: Deploy Post-Migration Build and Verify Readiness",
+  "projectName": "Add an admin “Next step” CTA in the Deployment Readiness banner to navigate to Activity 3 requirements",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

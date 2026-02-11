@@ -1,9 +1,10 @@
 import React from 'react';
 import { useDeploymentReadiness, useIsCallerAdmin } from '../hooks/useQueries';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, XCircle, ArrowRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from '@tanstack/react-router';
+import { getDeploymentStepMessaging } from '../utils/deploymentChecklistStepMessaging';
 
 export default function DeploymentReadinessBanner() {
   const { data: readiness, isLoading } = useDeploymentReadiness();
@@ -16,6 +17,10 @@ export default function DeploymentReadinessBanner() {
   }
 
   const allReady = readiness.accessControlInitialized && readiness.stripeConfigured;
+  const stepMessaging = getDeploymentStepMessaging(
+    readiness.accessControlInitialized,
+    readiness.stripeConfigured
+  );
 
   return (
     <div className="border-b bg-muted/50">
@@ -27,12 +32,25 @@ export default function DeploymentReadinessBanner() {
             <AlertCircle className="h-4 w-4" />
           )}
           <AlertTitle className="font-semibold">
-            {allReady ? 'Deployment Ready' : 'Deployment Status'}
+            {allReady ? 'Deployment Ready — Step 6 Complete' : 'Deployment Status — Step 6 Blocked'}
           </AlertTitle>
           <AlertDescription>
-            <p className="mb-3">{readiness.message}</p>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <p className="font-medium">
+                  Completed: <span className={allReady ? 'text-green-600' : 'text-destructive'}>{stepMessaging.completedStep}</span>
+                </p>
+                <p className="font-medium">
+                  Next Step: <span className={allReady ? 'text-green-600' : 'text-muted-foreground'}>{stepMessaging.nextStep}</span>
+                </p>
+              </div>
+              
+              <p className={`text-sm font-medium ${!allReady ? 'text-destructive' : ''}`}>
+                {stepMessaging.statusMessage}
+              </p>
+            </div>
             
-            <div className="space-y-2 text-sm mb-3">
+            <div className="space-y-2 text-sm mt-4 mb-3">
               <div className="flex items-center gap-2">
                 {readiness.accessControlInitialized ? (
                   <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -70,8 +88,8 @@ export default function DeploymentReadinessBanner() {
                   ))}
                 </ul>
                 
-                {!readiness.stripeConfigured && (
-                  <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!readiness.stripeConfigured && (
                     <Button
                       size="sm"
                       onClick={() => navigate({ to: '/admin' })}
@@ -80,15 +98,37 @@ export default function DeploymentReadinessBanner() {
                       Go to Admin Dashboard
                       <ArrowRight className="h-4 w-4" />
                     </Button>
-                  </div>
-                )}
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate({ to: '/activity-3' })}
+                    className="gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Go to Activity 3 Requirements
+                  </Button>
+                </div>
               </div>
             )}
             
             {allReady && (
-              <p className="text-sm text-green-600 font-medium mt-2">
-                ✓ All systems are ready for deployment
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-green-600 font-medium mt-2">
+                  ✓ All systems are ready. You may now proceed with Step 7 (Publish Live).
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate({ to: '/activity-3' })}
+                    className="gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Go to Activity 3 Requirements
+                  </Button>
+                </div>
+              </div>
             )}
           </AlertDescription>
         </Alert>
