@@ -8,19 +8,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Building2, Check } from 'lucide-react';
+import { Building2, Check, Loader2 } from 'lucide-react';
 
 export default function OrganizationSwitcher() {
   const { activeOrganization, setActiveOrganization, organizations, isLoading } = useOrganization();
 
-  if (isLoading || organizations.length === 0) {
+  if (isLoading) {
+    return (
+      <Button variant="outline" size="sm" className="gap-2" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Loading...</span>
+      </Button>
+    );
+  }
+
+  if (organizations.length === 0) {
     return null;
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2" disabled={isLoading}>
           <Building2 className="h-4 w-4" />
           <span className="max-w-[150px] truncate">
             {activeOrganization?.name || 'Select Organization'}

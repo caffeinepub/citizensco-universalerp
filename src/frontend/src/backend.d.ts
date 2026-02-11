@@ -14,15 +14,6 @@ export class ExternalBlob {
     static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob;
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
-export interface Payroll {
-    id: string;
-    salary: bigint;
-    createdAt: Time;
-    deductions: bigint;
-    netPay: bigint;
-    employeeId: string;
-    bonus: bigint;
-}
 export interface UserProfile {
     name: string;
     shippingAddress?: string;
@@ -35,6 +26,15 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
+export interface Payroll {
+    id: string;
+    salary: bigint;
+    createdAt: Time;
+    deductions: bigint;
+    netPay: bigint;
+    employeeId: string;
+    bonus: bigint;
+}
 export interface OrderItem {
     sku: string;
     productId: string;
@@ -53,6 +53,11 @@ export interface WalletTransaction {
     amount: bigint;
     walletId: WalletId;
 }
+export interface WalletSummaryData {
+    events: Array<WalletEvent>;
+    wallet: Wallet;
+    transactions: Array<WalletTransaction>;
+}
 export interface WalletEvent {
     id: WalletEventId;
     organizationId: OrganizationId;
@@ -62,19 +67,6 @@ export interface WalletEvent {
     payload?: string;
     walletId: WalletId;
     eventType: EventType;
-}
-export interface PerformanceRecord {
-    id: string;
-    kpis: {
-        communication: bigint;
-        teamwork: bigint;
-        productivity: bigint;
-        leadership: bigint;
-    };
-    createdAt: Time;
-    reviewStatus: PerformanceReviewStatus;
-    feedback?: string;
-    employeeId: string;
 }
 export interface Wallet {
     id: WalletId;
@@ -89,6 +81,19 @@ export interface Wallet {
     currency: CurrencyCode;
 }
 export type TransactionId = string;
+export interface PerformanceRecord {
+    id: string;
+    kpis: {
+        communication: bigint;
+        teamwork: bigint;
+        productivity: bigint;
+        leadership: bigint;
+    };
+    createdAt: Time;
+    reviewStatus: PerformanceReviewStatus;
+    feedback?: string;
+    employeeId: string;
+}
 export interface LeaveRequest {
     id: string;
     status: Variant_pending_approved_rejected;
@@ -97,6 +102,10 @@ export interface LeaveRequest {
     employeeId: string;
     startDate: Time;
     reason: string;
+}
+export interface TransformationInput {
+    context: Uint8Array;
+    response: http_request_result;
 }
 export interface Lead {
     id: string;
@@ -108,10 +117,6 @@ export interface Lead {
     notes: Array<string>;
     contactId: string;
     expectedRevenue?: bigint;
-}
-export interface TransformationInput {
-    context: Uint8Array;
-    response: http_request_result;
 }
 export type StripeSessionStatus = {
     __kind__: "completed";
@@ -151,6 +156,12 @@ export interface CrmTask {
     relatedContact?: string;
     relatedLead?: string;
 }
+export interface SidebarFinancialsResponse {
+    financialSections: Array<SidebarFinancialSection>;
+    wallets: Array<WalletOverviewResponse>;
+    events: Array<WalletEvent>;
+    transactions: Array<WalletTransaction>;
+}
 export interface Contact {
     id: string;
     ownerId: Principal;
@@ -169,6 +180,16 @@ export interface Attendance {
     clockOutTime?: Time;
     employeeId: string;
     clockInTime: Time;
+}
+export interface WalletOverviewResponse {
+    id: WalletId;
+    balance: bigint;
+    name: string;
+    description?: string;
+    isActive: boolean;
+    currency: string;
+    eventCount: bigint;
+    transactionCount: bigint;
 }
 export interface OrganizationMember {
     organizationId: string;
@@ -221,6 +242,15 @@ export interface ShoppingItem {
     productDescription: string;
 }
 export type CurrencyCode = string;
+export interface SidebarFinancialSection {
+    overviewData: {
+        transactionVolume: bigint;
+        activeWallets: bigint;
+        recentTransactions: Array<WalletTransaction>;
+        totalBalance: bigint;
+    };
+    sectionName: string;
+}
 export type OrganizationId = string;
 export type WalletId = string;
 export interface Organization {
@@ -244,17 +274,6 @@ export interface Product {
     image?: ExternalBlob;
     price: bigint;
     digital: boolean;
-}
-export interface Category {
-    id: string;
-    name: string;
-    parentId?: string;
-}
-export interface DeploymentReadinessStatus {
-    accessControlInitialized: boolean;
-    stripeConfigured: boolean;
-    message: string;
-    recommendations: Array<string>;
 }
 export enum EmployeeStatus {
     onLeave = "onLeave",
@@ -314,7 +333,6 @@ export interface backendInterface {
     getContact(_contactId: string): Promise<Contact | null>;
     getCrmTask(_taskId: string): Promise<CrmTask | null>;
     getDepartment(_departmentId: string): Promise<Department | null>;
-    getDeploymentReadiness(): Promise<DeploymentReadinessStatus>;
     getEmployee(_employeeId: string): Promise<Employee | null>;
     getLead(_leadId: string): Promise<Lead | null>;
     getLeaveRequest(_leaveId: string): Promise<LeaveRequest | null>;
@@ -322,6 +340,11 @@ export interface backendInterface {
     getOrder(_orderId: string): Promise<Order | null>;
     getOrganization(_orgId: string): Promise<Organization | null>;
     getOrganizationMembers(orgId: string): Promise<Array<OrganizationMember>>;
+    getOrganizationSidebarFinancials(orgId: string): Promise<SidebarFinancialsResponse>;
+    getOrganizationWalletEvents(orgId: string, walletId: WalletId): Promise<Array<WalletEvent>>;
+    getOrganizationWalletTransactions(orgId: string, walletId: WalletId): Promise<Array<WalletTransaction>>;
+    getOrganizationWallets(orgId: string): Promise<Array<Wallet>>;
+    getOrganizationWalletsSummary(orgId: string): Promise<Array<WalletOverviewResponse>>;
     getOrganizations(): Promise<Array<Organization>>;
     getPayroll(_payrollId: string): Promise<Payroll | null>;
     getPerformanceRecord(_recordId: string): Promise<PerformanceRecord | null>;
@@ -330,6 +353,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWallet(_walletId: WalletId): Promise<Wallet | null>;
     getWalletEvent(_eventId: WalletEventId): Promise<WalletEvent | null>;
+    getWalletSummary(walletId: WalletId): Promise<WalletSummaryData>;
     getWalletTransaction(_transactionId: TransactionId): Promise<WalletTransaction | null>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;

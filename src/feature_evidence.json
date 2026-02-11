@@ -2,12 +2,33 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-expose-the-deployment-readiness-status-in-the-frontend-ui-so-users-can-self-diagnose-why-a-just-deployed-version-is-failing-including-user-facing-english-messages-for-missing-initialization-configuration-and-the-recommended-next-action-e-g-admin-setup-required-set-caffeine-admin-token-and-run-initialization",
-      "featureTitle": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+      "featureId": "feature-add-a-new-wallet-overview-page-in-the-frontend-that-displays-organization-scoped-wallet-overview-data-for-the-currently-active-organization-from-organizationcontext-the-page-must-load-its-data-via-react-query-hooks-calling-the-backend-apis-from-req-1-and-render-clear-loading-empty-and-error-states",
+      "featureTitle": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
+      "files": [
+        "frontend/src/pages/WalletOverviewPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "http-outcalls@3.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-wire-navigation-routing-to-access-the-new-wallet-overview-page-from-the-existing-app-routing-tanstack-router-and-ensure-the-active-organization-selection-organizationswitcher-organizationcontext-controls-which-organization-s-wallets-are-shown-on-the-wallet-overview-page",
+      "featureTitle": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
       "files": [
         "frontend/src/App.tsx",
-        "frontend/src/components/DeploymentReadinessBanner.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/Header.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,28 +43,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-short-step-by-step-activity-2-deployment-checklist-document-in-the-repo-that-explicitly-reflects-the-confirm-at-each-step-workflow-and-includes-guidance-to-avoid-desynchronization-e-g-do-not-publish-manual-changes-mid-step-verify-readiness-endpoint-before-publishing",
-      "featureTitle": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
-      "files": [
-        "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "stripe@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "http-outcalls@3.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

@@ -14,6 +14,8 @@ import Stripe "stripe/stripe";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
 
+
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -217,6 +219,14 @@ actor {
     createdAt : Time.Time;
   };
 
+  public type Fee = {
+    id : Text;
+    feeType : { #fixed; #percentage };
+    amount : Nat;
+    description : Text;
+    applicableTo : [Text];
+  };
+
   public type AccountingData = {};
 
   public type WalletId = Text;
@@ -274,6 +284,46 @@ actor {
     payload : ?Text;
     createdBy : Principal;
     createdAt : Time.Time;
+  };
+
+  public type WalletSummaryData = {
+    wallet : Wallet;
+    transactions : [WalletTransaction];
+    events : [WalletEvent];
+  };
+
+  public type WalletSummary = {
+    wallets : [Wallet];
+    transactions : [WalletTransaction];
+    events : [WalletEvent];
+  };
+
+  public type WalletOverviewResponse = {
+    id : WalletId;
+    name : Text;
+    description : ?Text;
+    balance : Nat;
+    currency : Text;
+    transactionCount : Nat;
+    eventCount : Nat;
+    isActive : Bool;
+  };
+
+  public type SidebarFinancialSection = {
+    sectionName : Text;
+    overviewData : {
+      totalBalance : Nat;
+      activeWallets : Nat;
+      transactionVolume : Nat;
+      recentTransactions : [WalletTransaction];
+    };
+  };
+
+  public type SidebarFinancialsResponse = {
+    wallets : [WalletOverviewResponse];
+    transactions : [WalletTransaction];
+    events : [WalletEvent];
+    financialSections : [SidebarFinancialSection];
   };
 
   let organizations = Map.empty<Text, Organization>();
@@ -667,6 +717,184 @@ actor {
           Runtime.trap("Unauthorized: You must be a member of the event's organization");
         };
         ?event;
+      };
+    };
+  };
+
+  public query ({ caller }) func getOrganizationWallets(orgId : Text) : async [Wallet] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet data");
+    };
+    if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: You must be a member of the organization");
+    };
+    wallets.values().filter(func(w) { w.organizationId == orgId }).toArray();
+  };
+
+  public query ({ caller }) func getOrganizationWalletTransactions(orgId : Text, walletId : WalletId) : async [WalletTransaction] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet transactions");
+    };
+    if (walletId == "") {
+      if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+        Runtime.trap("Unauthorized: You must be a member of the organization");
+      };
+    } else {
+      switch (wallets.get(walletId)) {
+        case (null) { Runtime.trap("Wallet not found") };
+        case (?wallet) {
+          if (wallet.organizationId != orgId) {
+            Runtime.trap("Unauthorized: Wallet does not belong to this organization");
+          };
+          if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+            Runtime.trap("Unauthorized: You must be a member of the wallet's organization");
+          };
+        };
+      };
+    };
+
+    var filtered = walletTransactions.values();
+    if (walletId != "") {
+      filtered := filtered.filter(func(t) { t.organizationId == orgId and t.walletId == walletId });
+    } else {
+      filtered := filtered.filter(func(t) { t.organizationId == orgId });
+    };
+    filtered.toArray();
+  };
+
+  public query ({ caller }) func getOrganizationWalletEvents(orgId : Text, walletId : WalletId) : async [WalletEvent] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet events");
+    };
+    if (walletId == "") {
+      if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+        Runtime.trap("Unauthorized: You must be a member of the organization");
+      };
+    } else {
+      switch (wallets.get(walletId)) {
+        case (null) { Runtime.trap("Wallet not found") };
+        case (?wallet) {
+          if (wallet.organizationId != orgId) {
+            Runtime.trap("Unauthorized: Wallet does not belong to this organization");
+          };
+          if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+            Runtime.trap("Unauthorized: You must be a member of the wallet's organization");
+          };
+        };
+      };
+    };
+
+    var filtered = walletEvents.values();
+    if (walletId != "") {
+      filtered := filtered.filter(func(e) { e.organizationId == orgId and e.walletId == walletId });
+    } else {
+      filtered := filtered.filter(func(e) { e.organizationId == orgId });
+    };
+    filtered.toArray();
+  };
+
+  public query ({ caller }) func getOrganizationWalletsSummary(orgId : Text) : async [WalletOverviewResponse] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet summaries");
+    };
+    if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: You must be a member of the organization");
+    };
+    wallets.values().filter(func(w) { w.organizationId == orgId }).toArray().map(
+      func(wallet) {
+        {
+          id = wallet.id;
+          name = wallet.name;
+          description = wallet.description;
+          balance = wallet.balance;
+          currency = wallet.currency;
+          transactionCount = walletTransactions.values().filter(func(t) { t.walletId == wallet.id }).size();
+          eventCount = walletEvents.values().filter(func(e) { e.walletId == wallet.id }).size();
+          isActive = wallet.isActive;
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getOrganizationSidebarFinancials(orgId : Text) : async SidebarFinancialsResponse {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access wallet data");
+    };
+    if (not isOrganizationMember(caller, orgId) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: You must be a member of the organization");
+    };
+
+    let orgWallets = wallets.values().filter(func(w) { w.organizationId == orgId }).toArray();
+    let orgTransactions = walletTransactions.values().filter(func(t) { t.organizationId == orgId }).toArray();
+    let orgEvents = walletEvents.values().filter(func(e) { e.organizationId == orgId }).toArray();
+
+    let walletOverviews = orgWallets.map(
+      func(wallet) {
+        {
+          id = wallet.id;
+          name = wallet.name;
+          description = wallet.description;
+          balance = wallet.balance;
+          currency = wallet.currency;
+          transactionCount = orgTransactions.filter(func(t) { t.walletId == wallet.id }).size();
+          eventCount = orgEvents.filter(func(e) { e.walletId == wallet.id }).size();
+          isActive = wallet.isActive;
+        };
+      }
+    );
+
+    if (orgWallets.size() == 0) {
+      return {
+        wallets = [];
+        transactions = [];
+        events = [];
+        financialSections = [];
+      };
+    };
+
+    let financialSections = [ {
+      sectionName = "Wallet Overview";
+      overviewData = {
+        totalBalance = orgWallets.foldLeft(
+          0,
+          func(acc, wallet) { acc + wallet.balance },
+        );
+        activeWallets = orgWallets.filter(func(w) { w.isActive }).size();
+        transactionVolume = orgTransactions.foldLeft(
+          0,
+          func(acc, t) { acc + t.amount },
+        );
+        recentTransactions = orgTransactions;
+      };
+    } ];
+
+    {
+      wallets = walletOverviews;
+      transactions = orgTransactions;
+      events = orgEvents;
+      financialSections;
+    };
+  };
+
+  public query ({ caller }) func getWalletSummary(walletId : WalletId) : async WalletSummaryData {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get wallet summaries");
+    };
+    switch (wallets.get(walletId)) {
+      case null { Runtime.trap("Wallet not found") };
+      case (?wallet) {
+        if (not isOrganizationMember(caller, wallet.organizationId) and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: You must be a member of the wallet's organization");
+        };
+
+        let transactions = walletTransactions.values().filter(func(t) { t.walletId == walletId }).toArray();
+        let events = walletEvents.values().filter(func(e) { e.walletId == walletId }).toArray();
+
+        {
+          wallet;
+          transactions;
+          events;
+        };
       };
     };
   };

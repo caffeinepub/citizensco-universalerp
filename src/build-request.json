@@ -1,95 +1,77 @@
 {
   "kind": "build_request",
-  "title": "Add safe post-migration deployment readiness checks and non-trapping access-control initialization",
+  "title": "Step 1: Implement Wallet Overview (backend APIs + frontend page)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
+      "text": "Implement the backend wallet read APIs needed for the Wallet Overview experience: (1) listWallets scoped to an organization, (2) getWallet by walletId (and organization authorization), and (3) getWalletOverviewResponse that returns per-wallet overview metrics for the selected organization. Enforce authorization so organization members can only access wallets for organizations they belong to, while global admins may access any organization.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-4",
-          "msg-5"
+          "recent-messages"
         ],
         "quotes": [
-          "6. Deploy this new build to the network. (FAILED — this is the point of interruption)",
-          "Please say which steps in Activity 2 is outstanding and how do we proceed while avoiding errors.",
-          "Proceed with step 6"
+          "User: \"Start with step 1\"",
+          "Assistant: \"1. Wallet Overview Page ... needs backend calls: getWallet, listWallets, getWalletOverviewResponse\""
         ]
       },
       "acceptanceCriteria": [
-        "Installing/upgrading the canister succeeds even when CAFFEINE_ADMIN_TOKEN (or any access-control secret used by the project) is not set.",
-        "When secrets are missing, privileged methods remain protected (no privilege escalation), and the canister does not trap on startup.",
-        "A clear, deterministic internal state indicates whether access control has been initialized successfully."
+        "Backend exposes canister methods that allow the frontend to: (a) list wallets for an organization, (b) fetch a single wallet by id, and (c) fetch wallet overview data for an organization (including counts/metrics required by the UI).",
+        "For non-admin callers, wallet reads trap/return an error when requesting an organization they are not a member of.",
+        "For admin callers, the same methods work across any organization id.",
+        "Methods return stable, deterministic results and do not expose wallets/transactions/events from other organizations."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add backend APIs to support a deployment/readiness check for Activity 2 Step 6, including: (1) whether access control is initialized, (2) whether Stripe is configured, and (3) any other critical runtime prerequisites needed for the app to function without trapping.",
-      "target": "backend",
+      "text": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-4"
+          "recent-messages"
         ],
         "quotes": [
-          "Only Step 6 remains: deploy the post‑migration build.",
-          "How to proceed safely: 1. I will attempt Step 6 again cleanly."
+          "User: \"Start with step 1\"",
+          "Assistant: \"Implement the Wallet Overview Page first.\""
         ]
       },
       "acceptanceCriteria": [
-        "A caller can query a single backend method to get a structured readiness status without triggering traps.",
-        "The readiness response includes at least: access-control-initialized status and stripe-configured status (existing Stripe state is already tracked).",
-        "The readiness method is safe to call even when the system is partially configured (no traps)."
+        "When no organization is selected, the page shows an inline prompt telling the user to select an organization.",
+        "When an organization is selected, the page fetches and displays the wallet overview information for that organization only.",
+        "The page shows a loading skeleton/spinner while fetching and a user-friendly error message on failure.",
+        "If the organization has no wallets, the page shows an empty state indicating no wallets were found."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+      "text": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "recent-messages"
         ],
         "quotes": [
-          "Please say which steps in Activity 2 is outstanding and how do we proceed while avoiding errors."
+          "User: \"Start with step 1\""
         ]
       },
       "acceptanceCriteria": [
-        "The app shows a clear status panel/banner when critical prerequisites are not met (at minimum: access control not initialized; Stripe not configured).",
-        "User-facing text is in English.",
-        "The UI does not require editing any files under frontend/src/components/ui or other immutable paths."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
-      "target": "unknown",
-      "source": {
-        "messageIds": [
-          "msg-3"
-        ],
-        "quotes": [
-          "I intend for us to maintain the pattern of confirming at each step by step. Please name & number each step."
-        ]
-      },
-      "acceptanceCriteria": [
-        "A new documentation file exists in the repository describing the numbered Activity 2 steps (including Step 6 deploy, Step 7 publish) and what to verify before continuing.",
-        "The checklist includes a specific instruction to verify the new readiness status before attempting publish.",
-        "All user-facing/document text is English."
+        "A new route exists for the Wallet Overview Page and is reachable via in-app navigation.",
+        "Switching the active organization updates the Wallet Overview data (query keys include organization id so caches are correctly separated).",
+        "No edits are made to any frontend immutable paths listed in SYSTEM_CONTEXT."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor (all logic in backend/main.mo; add migration.mo only if state upgrade handling is required).",
-    "Do not edit any frontend files under frontend immutablePaths (including frontend/src/components/ui, frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
+    "Backend must remain a single-actor Motoko canister with all logic in backend/main.mo.",
+    "Do not modify files under frontend/src/components/ui or any paths listed in frontend.immutablePaths.",
+    "Use English for all user-facing text."
   ],
   "nonGoals": [
-    "Implementing currently-scaffolded ERP domain APIs (products, categories, orders, wallets, CRM, HRMS) beyond readiness/status reporting.",
-    "Adding third-party auth providers or external databases.",
-    "Changing the Stripe checkout feature behavior beyond exposing configuration/readiness status."
+    "Implement Wallet Summary Page (step 2).",
+    "Implement Wallet Transactions Table UI (step 3).",
+    "Implement Wallet Events Feed UI (step 4).",
+    "Implement wallet create/delete mutations (these are currently stubbed in useQueries.ts and are out of scope for step 1 unless explicitly requested)."
   ],
   "imageRequirements": {
     "required": [],
@@ -98,9 +80,7 @@
   "userProfileUpdate": {
     "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [
-      "Use English for any user-facing text"
-    ],
+    "preferencesToAdd": [],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

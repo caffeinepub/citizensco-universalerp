@@ -1,52 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend deployment readiness status UI and Activity 2 deployment checklist",
+  "title": "Step 1: Wallet Overview (frontend only)",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Expose backend deployment/readiness status in the UI with clear English messages and recommended next actions (access control + Stripe at minimum).",
+      "id": "REQ-2",
+      "summary": "Create a Wallet Overview Page that reads the active organization from OrganizationContext and loads organization-scoped wallet overview data via React Query with clear loading/empty/error states.",
       "acceptanceCriteria": [
-        "The app shows a clear status panel/banner when critical prerequisites are not met (at minimum: access control not initialized; Stripe not configured).",
-        "User-facing text is in English.",
-        "The UI does not require editing any files under frontend/src/components/ui or other immutable paths."
+        "When no organization is selected, the page shows an inline prompt telling the user to select an organization.",
+        "When an organization is selected, the page fetches and displays the wallet overview information for that organization only.",
+        "The page shows a loading skeleton/spinner while fetching and a user-friendly error message on failure.",
+        "If the organization has no wallets, the page shows an empty state indicating no wallets were found."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/backend.d.ts",
-          "operation": "modify",
-          "description": "Extend the generated backend TypeScript declarations to include the new structured readiness status type and the single backend method used to query readiness (as added by REQ-2), so the frontend can call it without type errors."
+          "path": "frontend/src/pages/WalletOverviewPage.tsx",
+          "operation": "create",
+          "description": "Implement the Wallet Overview Page UI. Read activeOrganization from OrganizationContext; when missing, render an inline prompt. When present, fetch overview metrics using React Query hooks (org-scoped). Render loading (skeleton/spinner), empty (no wallets), and error states (including authorization errors normalized to English)."
         },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add a React Query hook (e.g., useDeploymentReadiness) that calls the backend readiness method via the actor, returns a structured readiness result, and never throws uncaught errors (surface failures as a safe UI state/message instead)."
-        },
-        {
-          "path": "frontend/src/components/DeploymentReadinessBanner.tsx",
-          "operation": "create",
-          "description": "Create a non-intrusive status banner/panel component that consumes the readiness hook and renders English, user-facing diagnostics and next-action guidance (e.g., access control initialization required; Stripe configuration required). Ensure it does not depend on or modify any files under frontend/src/components/ui (immutable paths)."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wire the new DeploymentReadinessBanner into the main app layout so it is visible after deploy (e.g., within Layout above the Outlet) and is not an orphan component."
+          "description": "Add/extend wallet read hooks needed by the Wallet Overview experience to call existing backend actor methods (e.g., organization-scoped wallet list, single wallet fetch by id, and organization-scoped wallet overview summary). Ensure query keys include organizationId (and walletId where relevant) and normalize errors with normalizeWalletError for user-friendly messages."
         }
       ]
     },
     {
-      "id": "REQ-4",
-      "summary": "Add an Activity 2 step-by-step deployment checklist document to the repo (English), including readiness verification guidance before publish.",
+      "id": "REQ-3",
+      "summary": "Add routing and navigation entry points for the Wallet Overview Page and ensure organization switching updates cached queries by scoping keys with organization id.",
       "acceptanceCriteria": [
-        "A new documentation file exists in the repository describing the numbered Activity 2 steps (including Step 6 deploy, Step 7 publish) and what to verify before continuing.",
-        "The checklist includes a specific instruction to verify the new readiness status before attempting publish.",
-        "All user-facing/document text is English."
+        "A new route exists for the Wallet Overview Page and is reachable via in-app navigation.",
+        "Switching the active organization updates the Wallet Overview data (query keys include organization id so caches are correctly separated).",
+        "No edits are made to any frontend immutable paths listed in SYSTEM_CONTEXT."
       ],
       "file_operations": [
         {
-          "path": "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
-          "operation": "create",
-          "description": "Add an English, numbered “Activity 2 deployment checklist” documenting the confirm-at-each-step workflow, including Step 6 deploy and Step 7 publish, explicitly warning against mid-step manual changes and instructing operators to verify the new readiness status in the app UI before attempting publish."
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Register a new tanstack router route for the Wallet Overview Page and add it to the route tree so it is navigable within the app."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Add an in-app navigation control (e.g., a header button/link) that routes to the new Wallet Overview Page for authenticated users."
         }
       ]
     }

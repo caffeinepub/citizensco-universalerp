@@ -1,51 +1,26 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T12:41:18.786Z",
-  "summary": "Frontend adds an admin-only deployment readiness banner and a new Activity 2 deployment checklist document, plus a React Query hook that approximates readiness by calling existing backend methods. The diff does not show backend changes implementing non-trapping access-control initialization or a single structured readiness endpoint.",
+  "generatedAt": "2026-02-11T04:29:00.505Z",
+  "summary": "Frontend Wallet Overview page was added and routing/navigation to it was wired via TanStack Router and the Header. Backend changes are present in backend/main.mo, but the diff excerpt does not show any wallet read API implementations or authorization logic required by REQ-1.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
-      "reason": "The diff summary provides no evidence of backend changes that (a) catch/avoid traps when secrets are missing during install/upgrade, or (b) persist and expose a deterministic internal 'access control initialized' state. The only shown backend snippet is type declarations and existing access-control state initialization.",
+      "requirement": "Implement backend wallet read APIs (listWallets scoped to organization, getWallet by walletId with org authorization, getWalletOverviewResponse with per-wallet overview metrics) with authorization enforcement (org members limited to their org; global admins can access any org) and deterministic org-scoped results.",
+      "reason": "backend/main.mo diff content is truncated and does not show any new public canister methods for listWallets/getWallet/getWalletOverviewResponse or any org-scoped authorization checks; therefore implementation cannot be verified from the provided diff summary.",
       "evidence": [
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Add backend APIs to support a deployment/readiness check via a single backend method returning structured status including access-control-initialized and stripe-configured, safe to call without traps.",
-      "reason": "Frontend explicitly notes the backend readiness method is 'not yet implemented' and instead calls individual methods (isStripeConfigured, isCallerAdmin), indicating the required single structured backend readiness API is missing from the diff.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, with English messages and recommended next actions.",
-      "reason": "The banner is gated behind an admin check and returns null when the caller is not admin (or when isAdmin is falsy), so non-admin users may not see any readiness/status UI for self-diagnosis as required.",
-      "evidence": [
-        "frontend/src/components/DeploymentReadinessBanner.tsx"
+        "backend/main.mo (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Frontend implements deployment readiness by inferring access-control initialization from the ability to call isCallerAdmin, and explicitly comments that the backend readiness method is not implemented.",
-      "reason": "REQ-2 asked for a single backend readiness endpoint; adding a frontend-only inferred readiness mechanism (and a local type) is not requested as a substitute and is presented as a workaround.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts"
-      ]
-    }
-  ],
-  "confidence": 0.72,
+  "hallucinated_features": [],
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
     "frontend/src/App.tsx",
-    "frontend/src/components/DeploymentReadinessBanner.tsx",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/pages/WalletOverviewPage.tsx",
     "project_state.json"
   ]
 }

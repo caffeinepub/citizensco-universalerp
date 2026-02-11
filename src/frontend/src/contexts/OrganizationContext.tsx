@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useListOrganizations } from '../hooks/useQueries';
 import type { Organization } from '../backend';
@@ -16,6 +17,7 @@ const STORAGE_KEY = 'activeOrganizationId';
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { identity } = useInternetIdentity();
+  const queryClient = useQueryClient();
   const [activeOrganization, setActiveOrganizationState] = useState<Organization | null>(null);
 
   // Fetch organizations for the current user using real backend method
@@ -59,9 +61,31 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [identity]);
 
   const setActiveOrganization = (org: Organization | null) => {
+    // Only allow setting an org that exists in the current organizations list
+    if (org && !organizations.find(o => o.id === org.id)) {
+      console.warn('Attempted to set an organization not in the current list');
+      return;
+    }
+
+    // Cancel any pending wallet queries for the previous org
+    if (activeOrganization) {
+      queryClient.cancelQueries({ queryKey: ['orgWallets', activeOrganization.id] });
+      queryClient.cancelQueries({ queryKey: ['orgWalletsSummary', activeOrganization.id] });
+      queryClient.cancelQueries({ queryKey: ['orgWalletTransactions', activeOrganization.id] });
+      queryClient.cancelQueries({ queryKey: ['orgWalletEvents', activeOrganization.id] });
+      queryClient.cancelQueries({ queryKey: ['orgSidebarFinancials', activeOrganization.id] });
+    }
+
     setActiveOrganizationState(org);
+    
     if (org) {
       localStorage.setItem(STORAGE_KEY, org.id);
+      // Invalidate wallet queries for the new org to trigger fresh fetch
+      queryClient.invalidateQueries({ queryKey: ['orgWallets', org.id] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletsSummary', org.id] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletTransactions', org.id] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletEvents', org.id] });
+      queryClient.invalidateQueries({ queryKey: ['orgSidebarFinancials', org.id] });
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }

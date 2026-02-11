@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCart } from '../contexts/CartContext';
 import { useIsCallerAdmin } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, User, Shield, Package, Users, Briefcase } from 'lucide-react';
+import { ShoppingCart, User, Shield, Package, Users, Briefcase, FileText, Wallet } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import OrganizationSwitcher from './OrganizationSwitcher';
 
@@ -56,6 +56,14 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => navigate({ to: '/wallets' })}
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Wallets
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate({ to: '/orders' })}
               >
                 <User className="h-4 w-4 mr-2" />
@@ -86,6 +94,14 @@ export default function Header() {
                   >
                     <Briefcase className="h-4 w-4 mr-2" />
                     HRMS
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate({ to: '/activity-3' })}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Activity 3
                   </Button>
                 </>
               )}

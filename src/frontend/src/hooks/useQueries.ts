@@ -2,7 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { useInternetIdentity } from './useInternetIdentity';
 import { Principal } from '@dfinity/principal';
-import type { UserProfile, Organization, OrganizationMember, OrganizationRole } from '../backend';
+import { toast } from 'sonner';
+import { normalizeWalletError } from '../utils/walletErrors';
+import type { UserProfile, Organization, OrganizationMember, OrganizationRole, Wallet, WalletTransaction, WalletEvent, WalletOverviewResponse, SidebarFinancialsResponse, StripeConfiguration, ShoppingItem } from '../backend';
 import type {
   Product,
   Category,
@@ -26,10 +28,6 @@ import type {
   EmployeeStatus,
   LeaveStatus,
   PerformanceReviewStatus,
-  UnifiedWallet,
-  WalletTransaction,
-  TransactionStatusNew,
-  WalletTransactionEvent,
 } from '../types/erp-types';
 
 // Local type definition for deployment readiness (backend method not yet implemented)
@@ -102,6 +100,66 @@ export function useDeploymentReadiness() {
     enabled: !!actor && !isFetching,
     retry: false,
     refetchInterval: 30000,
+  });
+}
+
+// Admin check query
+export function useIsCallerAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerAdmin'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Stripe configuration queries
+export function useIsStripeConfigured() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isStripeConfigured'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isStripeConfigured();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetStripeConfiguration() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (config: StripeConfiguration) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.setStripeConfiguration(config);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isStripeConfigured'] });
+      queryClient.invalidateQueries({ queryKey: ['deploymentReadiness'] });
+    },
+  });
+}
+
+export function useCreateCheckoutSession() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async ({ items, successUrl, cancelUrl }: { items: ShoppingItem[]; successUrl: string; cancelUrl: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
+      const session = JSON.parse(result) as { id: string; url: string };
+      if (!session?.url) {
+        throw new Error('Stripe session missing url');
+      }
+      return session;
+    },
   });
 }
 
@@ -247,229 +305,159 @@ export function useUpdateOrganizationMemberRoles() {
   });
 }
 
-// Wallet Queries - Mock implementation until backend methods are available
-export function useGetUserWallets(userId?: string) {
+// Organization-scoped Wallet Queries
+export function useGetOrganizationWallets(organizationId: string | null) {
   const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-  const principal = identity?.getPrincipal();
 
-  return useQuery<UnifiedWallet[]>({
-    queryKey: ['userWallets', principal?.toString()],
+  return useQuery<Wallet[]>({
+    queryKey: ['orgWallets', organizationId],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor || !organizationId) return [];
+      try {
+        return await actor.getOrganizationWallets(organizationId);
+      } catch (error) {
+        const message = normalizeWalletError(error);
+        console.error('Failed to fetch organization wallets:', message);
+        throw new Error(message);
+      }
     },
-    enabled: !!actor && !isFetching && !!principal,
+    enabled: !!actor && !isFetching && !!organizationId,
     refetchInterval: 10000,
   });
 }
 
-export function useGetAllWallets() {
+export function useGetOrganizationWalletsSummary(organizationId: string | null) {
   const { actor, isFetching } = useActor();
 
-  return useQuery<UnifiedWallet[]>({
-    queryKey: ['allWallets'],
+  return useQuery<WalletOverviewResponse[]>({
+    queryKey: ['orgWalletsSummary', organizationId],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor || !organizationId) return [];
+      try {
+        return await actor.getOrganizationWalletsSummary(organizationId);
+      } catch (error) {
+        const message = normalizeWalletError(error);
+        console.error('Failed to fetch organization wallets summary:', message);
+        throw new Error(message);
+      }
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!organizationId,
     refetchInterval: 10000,
   });
 }
 
-export function useGetWallet(walletId: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<UnifiedWallet | null>({
-    queryKey: ['wallet', walletId],
-    queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return null;
-    },
-    enabled: !!actor && !isFetching && !!walletId,
-    refetchInterval: 5000,
-  });
-}
-
-export function useGetWalletBalance(walletId: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<bigint | null>({
-    queryKey: ['walletBalance', walletId],
-    queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return null;
-    },
-    enabled: !!actor && !isFetching && !!walletId,
-    refetchInterval: 5000,
-  });
-}
-
-export function useAddWallet() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (wallet: UnifiedWallet) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['allWallets'] });
-    },
-  });
-}
-
-export function useUpdateWallet() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (wallet: UnifiedWallet) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: (_, wallet) => {
-      queryClient.invalidateQueries({ queryKey: ['wallet', wallet.id] });
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['allWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['walletBalance', wallet.id] });
-    },
-  });
-}
-
-export function useDeleteWallet() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (walletId: string) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['allWallets'] });
-    },
-  });
-}
-
-// Transaction Queries - Mock implementation
-export function useGetWalletTransactions(walletId: string) {
+export function useGetOrganizationWalletTransactions(organizationId: string | null, walletId: string = '') {
   const { actor, isFetching } = useActor();
 
   return useQuery<WalletTransaction[]>({
-    queryKey: ['walletTransactions', walletId],
+    queryKey: ['orgWalletTransactions', organizationId, walletId],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor || !organizationId) return [];
+      try {
+        return await actor.getOrganizationWalletTransactions(organizationId, walletId);
+      } catch (error) {
+        const message = normalizeWalletError(error);
+        console.error('Failed to fetch organization wallet transactions:', message);
+        throw new Error(message);
+      }
     },
-    enabled: !!actor && !isFetching && !!walletId,
+    enabled: !!actor && !isFetching && !!organizationId,
     refetchInterval: 5000,
   });
 }
 
-export function useGetUserTransactions(userId?: string) {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-  const principal = identity?.getPrincipal();
-
-  return useQuery<WalletTransaction[]>({
-    queryKey: ['userTransactions', principal?.toString()],
-    queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
-    },
-    enabled: !!actor && !isFetching && !!principal,
-    refetchInterval: 5000,
-  });
-}
-
-export function useGetTransactionHistory(walletId: string, count: number = 10) {
+export function useGetOrganizationWalletEvents(organizationId: string | null, walletId: string = '') {
   const { actor, isFetching } = useActor();
 
-  return useQuery<WalletTransaction[]>({
-    queryKey: ['transactionHistory', walletId, count],
+  return useQuery<WalletEvent[]>({
+    queryKey: ['orgWalletEvents', organizationId, walletId],
     queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
+      if (!actor || !organizationId) return [];
+      try {
+        return await actor.getOrganizationWalletEvents(organizationId, walletId);
+      } catch (error) {
+        const message = normalizeWalletError(error);
+        console.error('Failed to fetch organization wallet events:', message);
+        throw new Error(message);
+      }
     },
-    enabled: !!actor && !isFetching && !!walletId,
-    refetchInterval: 5000,
-  });
-}
-
-export function useGetRecentTransactionEvents(count: number = 20) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<WalletTransactionEvent[]>({
-    queryKey: ['recentTransactionEvents', count],
-    queryFn: async () => {
-      // TODO: Backend method not yet implemented
-      return [];
-    },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!organizationId,
     refetchInterval: 3000,
   });
 }
 
-export function useRecordTransaction() {
+export function useGetOrganizationSidebarFinancials(organizationId: string | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<SidebarFinancialsResponse>({
+    queryKey: ['orgSidebarFinancials', organizationId],
+    queryFn: async () => {
+      if (!actor || !organizationId) {
+        return {
+          wallets: [],
+          transactions: [],
+          events: [],
+          financialSections: [],
+        };
+      }
+      try {
+        return await actor.getOrganizationSidebarFinancials(organizationId);
+      } catch (error) {
+        const message = normalizeWalletError(error);
+        console.error('Failed to fetch organization sidebar financials:', message);
+        throw new Error(message);
+      }
+    },
+    enabled: !!actor && !isFetching && !!organizationId,
+    refetchInterval: 10000,
+  });
+}
+
+// Wallet mutations (organization-scoped - not yet implemented in backend)
+export function useAddOrganizationWallet() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (transaction: WalletTransaction) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+    mutationFn: async ({ organizationId, name, description, currency }: { organizationId: string; name: string; description?: string; currency: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      // TODO: Backend method not yet implemented for creating wallets
+      throw new Error('Wallet creation not yet implemented in backend');
     },
-    onSuccess: (_, transaction) => {
-      queryClient.invalidateQueries({ queryKey: ['walletTransactions', transaction.walletId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionHistory', transaction.walletId] });
-      queryClient.invalidateQueries({ queryKey: ['userTransactions'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet', transaction.walletId] });
-      queryClient.invalidateQueries({ queryKey: ['walletBalance', transaction.walletId] });
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['allWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['recentTransactionEvents'] });
+    onSuccess: (_, { organizationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orgWallets', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletsSummary', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgSidebarFinancials', organizationId] });
+      toast.success('Wallet added successfully');
+    },
+    onError: (error) => {
+      const message = normalizeWalletError(error);
+      toast.error(message);
     },
   });
 }
 
-export function useUpdateTransactionStatus() {
+export function useDeleteOrganizationWallet() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ transactionId, walletId, status }: { transactionId: string; walletId: string; status: TransactionStatusNew }) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
+    mutationFn: async ({ organizationId, walletId }: { organizationId: string; walletId: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      // TODO: Backend method not yet implemented for deleting wallets
+      throw new Error('Wallet deletion not yet implemented in backend');
     },
-    onSuccess: (_, { walletId }) => {
-      queryClient.invalidateQueries({ queryKey: ['walletTransactions', walletId] });
-      queryClient.invalidateQueries({ queryKey: ['transactionHistory', walletId] });
-      queryClient.invalidateQueries({ queryKey: ['userTransactions'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet', walletId] });
-      queryClient.invalidateQueries({ queryKey: ['walletBalance', walletId] });
-      queryClient.invalidateQueries({ queryKey: ['userWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['allWallets'] });
-      queryClient.invalidateQueries({ queryKey: ['recentTransactionEvents'] });
+    onSuccess: (_, { organizationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orgWallets', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletsSummary', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletTransactions', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgWalletEvents', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['orgSidebarFinancials', organizationId] });
+      toast.success('Wallet removed successfully');
     },
-  });
-}
-
-export function useBroadcastWalletTransactionEvent() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (event: WalletTransactionEvent) => {
-      // TODO: Backend method not yet implemented
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recentTransactionEvents'] });
+    onError: (error) => {
+      const message = normalizeWalletError(error);
+      toast.error(message);
     },
   });
 }
@@ -572,21 +560,6 @@ export function useDeleteProduct() {
   });
 }
 
-export function useUpdateProductStock() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ productId, newStock }: { productId: string; newStock: bigint }) => {
-      // TODO: Implement when backend method is available
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-    },
-  });
-}
-
 // Category Queries - Mock implementation
 export function useGetAllCategories() {
   const { actor, isFetching } = useActor();
@@ -647,11 +620,11 @@ export function useDeleteCategory() {
 }
 
 // Order Queries - Mock implementation
-export function useGetMyOrders() {
+export function useGetAllOrders() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Order[]>({
-    queryKey: ['myOrders'],
+    queryKey: ['orders'],
     queryFn: async () => {
       // TODO: Implement when backend method is available
       return [];
@@ -660,16 +633,38 @@ export function useGetMyOrders() {
   });
 }
 
-export function useGetAllOrders() {
+export function useGetUserOrders() {
   const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
 
   return useQuery<Order[]>({
-    queryKey: ['allOrders'],
+    queryKey: ['userOrders', identity?.getPrincipal().toString()],
     queryFn: async () => {
       // TODO: Implement when backend method is available
       return [];
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!identity,
+  });
+}
+
+// Alias for useGetUserOrders
+export function useGetMyOrders() {
+  return useGetUserOrders();
+}
+
+export function useCreateOrder() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (order: Omit<Order, 'id' | 'createdAt'>) => {
+      // TODO: Implement when backend method is available
+      throw new Error('Backend method not yet implemented');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
+    },
   });
 }
 
@@ -683,8 +678,8 @@ export function usePlaceOrder() {
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
     },
   });
 }
@@ -699,8 +694,8 @@ export function useUpdateOrderStatus() {
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
     },
   });
 }
@@ -715,14 +710,13 @@ export function useCancelOrder() {
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
     },
   });
 }
 
-// Analytics Queries - Mock implementation
+// Analytics - Mock implementation
 export function useGetAnalytics() {
   const { actor, isFetching } = useActor();
 
@@ -731,8 +725,8 @@ export function useGetAnalytics() {
     queryFn: async () => {
       // TODO: Implement when backend method is available
       return {
-        totalOrders: BigInt(0),
         totalRevenue: BigInt(0),
+        totalOrders: BigInt(0),
         activeUsers: BigInt(0),
         ordersByStatus: [],
       };
@@ -741,88 +735,14 @@ export function useGetAnalytics() {
   });
 }
 
-export function useIsCallerAdmin() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ['isAdmin'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isCallerAdmin();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-// Stripe Queries
-export function useIsStripeConfigured() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ['stripeConfigured'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isStripeConfigured();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useSetStripeConfiguration() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (config: { secretKey: string; allowedCountries: string[] }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.setStripeConfiguration(config);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stripeConfigured'] });
-      queryClient.invalidateQueries({ queryKey: ['deploymentReadiness'] });
-    },
-  });
-}
-
-export function useCreateCheckoutSession() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async ({
-      items,
-      successUrl,
-      cancelUrl,
-    }: {
-      items: Array<{ productName: string; productDescription: string; priceInCents: bigint; quantity: bigint; currency: string }>;
-      successUrl: string;
-      cancelUrl: string;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      const result = await actor.createCheckoutSession(items, successUrl, cancelUrl);
-      return JSON.parse(result) as { id: string; url: string };
-    },
-  });
-}
-
-// CRM Contact Queries - Mock implementation
-export function useGetMyContacts() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Contact[]>({
-    queryKey: ['myContacts'],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
+// Contact Queries - Mock implementation
 export function useGetAllContacts() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Contact[]>({
-    queryKey: ['allContacts'],
+    queryKey: ['contacts'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
     enabled: !!actor && !isFetching,
@@ -835,13 +755,11 @@ export function useAddContact() {
 
   return useMutation({
     mutationFn: async (contact: Contact) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myContacts'] });
-      queryClient.invalidateQueries({ queryKey: ['allContacts'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 }
@@ -852,11 +770,11 @@ export function useUpdateContact() {
 
   return useMutation({
     mutationFn: async ({ contactId, contact }: { contactId: string; contact: Contact }) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myContacts'] });
-      queryClient.invalidateQueries({ queryKey: ['allContacts'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 }
@@ -867,48 +785,23 @@ export function useDeleteContact() {
 
   return useMutation({
     mutationFn: async (contactId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myContacts'] });
-      queryClient.invalidateQueries({ queryKey: ['allContacts'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
     },
   });
 }
 
-export function useSearchContacts(searchTerm: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Contact[]>({
-    queryKey: ['contacts', 'search', searchTerm],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: false,
-  });
-}
-
-// CRM Lead Queries - Mock implementation
-export function useGetMyLeads() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Lead[]>({
-    queryKey: ['myLeads'],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
+// Lead Queries - Mock implementation
 export function useGetAllLeads() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Lead[]>({
-    queryKey: ['allLeads'],
+    queryKey: ['leads'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
     enabled: !!actor && !isFetching,
@@ -921,13 +814,11 @@ export function useAddLead() {
 
   return useMutation({
     mutationFn: async (lead: Lead) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }
@@ -938,13 +829,11 @@ export function useUpdateLead() {
 
   return useMutation({
     mutationFn: async ({ leadId, lead }: { leadId: string; lead: Lead }) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }
@@ -955,48 +844,23 @@ export function useDeleteLead() {
 
   return useMutation({
     mutationFn: async (leadId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 }
 
-export function useFilterLeadsByStage(stage: LeadStage) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Lead[]>({
-    queryKey: ['leads', 'stage', stage],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: false,
-  });
-}
-
-// CRM Opportunity Queries - Mock implementation
-export function useGetMyOpportunities() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Opportunity[]>({
-    queryKey: ['myOpportunities'],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
+// Opportunity Queries - Mock implementation
 export function useGetAllOpportunities() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Opportunity[]>({
-    queryKey: ['allOpportunities'],
+    queryKey: ['opportunities'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
     enabled: !!actor && !isFetching,
@@ -1009,13 +873,11 @@ export function useAddOpportunity() {
 
   return useMutation({
     mutationFn: async (opportunity: Opportunity) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['allOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
     },
   });
 }
@@ -1026,13 +888,11 @@ export function useUpdateOpportunity() {
 
   return useMutation({
     mutationFn: async ({ opportunityId, opportunity }: { opportunityId: string; opportunity: Opportunity }) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['allOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
     },
   });
 }
@@ -1043,113 +903,23 @@ export function useDeleteOpportunity() {
 
   return useMutation({
     mutationFn: async (opportunityId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['allOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
     },
   });
 }
 
-export function useConvertLeadToOpportunity() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ leadId, opportunity }: { leadId: string; opportunity: Opportunity }) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['myOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['allOpportunities'] });
-      queryClient.invalidateQueries({ queryKey: ['crmStats'] });
-      queryClient.invalidateQueries({ queryKey: ['pipelineDashboard'] });
-    },
-  });
-}
-
-// CRM Task Queries - Mock implementation
-export function useGetMyCrmTasks() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<CrmTask[]>({
-    queryKey: ['myCrmTasks'],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useGetAllCrmTasks() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<CrmTask[]>({
-    queryKey: ['allCrmTasks'],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useAddCrmTask() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (task: CrmTask) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myCrmTasks'] });
-      queryClient.invalidateQueries({ queryKey: ['allCrmTasks'] });
-    },
-  });
-}
-
-export function useUpdateCrmTask() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ taskId, task }: { taskId: string; task: CrmTask }) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myCrmTasks'] });
-      queryClient.invalidateQueries({ queryKey: ['allCrmTasks'] });
-    },
-  });
-}
-
-export function useDeleteCrmTask() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (taskId: string) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myCrmTasks'] });
-      queryClient.invalidateQueries({ queryKey: ['allCrmTasks'] });
-    },
-  });
-}
-
-// CRM Dashboard & Stats - Mock implementation
+// CRM Stats - Mock implementation
 export function useGetCrmStats() {
   const { actor, isFetching } = useActor();
 
   return useQuery<CrmStats>({
     queryKey: ['crmStats'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return {
         totalContacts: BigInt(0),
         totalLeads: BigInt(0),
@@ -1162,12 +932,14 @@ export function useGetCrmStats() {
   });
 }
 
+// Pipeline Dashboard - Mock implementation
 export function useGetPipelineDashboard() {
   const { actor, isFetching } = useActor();
 
   return useQuery<CrmDashboard>({
     queryKey: ['pipelineDashboard'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return {
         totalContacts: BigInt(0),
         totalLeads: BigInt(0),
@@ -1180,13 +952,14 @@ export function useGetPipelineDashboard() {
   });
 }
 
-// HRMS Employee Queries - Mock implementation
-export function useGetAllDepartments() {
+// Employee Queries - Mock implementation
+export function useGetAllEmployees() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Department[]>({
-    queryKey: ['departments'],
+  return useQuery<Employee[]>({
+    queryKey: ['employees'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
     enabled: !!actor && !isFetching,
@@ -1199,10 +972,11 @@ export function useAddEmployee() {
 
   return useMutation({
     mutationFn: async (employee: Employee) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -1213,10 +987,11 @@ export function useUpdateEmployee() {
 
   return useMutation({
     mutationFn: async ({ employeeId, employee }: { employeeId: string; employee: Employee }) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
@@ -1227,26 +1002,40 @@ export function useDeleteEmployee() {
 
   return useMutation({
     mutationFn: async (employeeId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
     },
   });
 }
 
-// HRMS Department Queries - Mock implementation
+// Department Queries - Mock implementation
+export function useGetAllDepartments() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Department[]>({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      // TODO: Implement when backend method is available
+      return [];
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useAddDepartment() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (department: Department) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
     },
   });
 }
@@ -1257,11 +1046,11 @@ export function useUpdateDepartment() {
 
   return useMutation({
     mutationFn: async ({ departmentId, department }: { departmentId: string; department: Department }) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
     },
   });
 }
@@ -1272,128 +1061,26 @@ export function useDeleteDepartment() {
 
   return useMutation({
     mutationFn: async (departmentId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
     },
   });
 }
 
-export function useGetEmployeesByDepartment(departmentId: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Employee[]>({
-    queryKey: ['employees', 'department', departmentId],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: false,
-  });
-}
-
-// HRMS Attendance Queries - Mock implementation
-export function useClockIn() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (employeeId: string) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
-    },
-  });
-}
-
-export function useClockOut() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (attendanceId: string) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
-    },
-  });
-}
-
-export function useGetAttendanceRecordsByEmployee(employeeId: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Attendance[]>({
-    queryKey: ['attendance', employeeId],
-    queryFn: async () => {
-      return [];
-    },
-    enabled: false,
-  });
-}
-
-// HRMS Leave Queries - Mock implementation
-export function useRequestLeave() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (leaveRequest: LeaveRequest) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaves'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
-    },
-  });
-}
-
-export function useApproveLeave() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (leaveId: string) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaves'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
-    },
-  });
-}
-
-export function useRejectLeave() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (leaveId: string) => {
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaves'] });
-      queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
-      queryClient.invalidateQueries({ queryKey: ['hrDashboard'] });
-    },
-  });
-}
-
-export function useGetLeaveRequestsByEmployee(employeeId: string) {
+// Leave Request Queries - Mock implementation
+export function useGetAllLeaveRequests() {
   const { actor, isFetching } = useActor();
 
   return useQuery<LeaveRequest[]>({
-    queryKey: ['leaves', employeeId],
+    queryKey: ['leaveRequests'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
-    enabled: false,
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -1403,49 +1090,61 @@ export function useGetPendingLeaves() {
   return useQuery<LeaveRequest[]>({
     queryKey: ['pendingLeaves'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return [];
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-// HRMS Payroll Queries - Mock implementation
-export function useProcessPayroll() {
+export function useApproveLeaveRequest() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ employeeId, salary, bonus, deductions }: { employeeId: string; salary: bigint; bonus: bigint; deductions: bigint }) => {
+    mutationFn: async (leaveId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payroll'] });
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
     },
   });
 }
 
-// HRMS Performance Queries - Mock implementation
-export function useAddPerformanceRecord() {
+export function useApproveLeave() {
+  return useApproveLeaveRequest();
+}
+
+export function useRejectLeaveRequest() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (performanceRecord: PerformanceRecord) => {
+    mutationFn: async (leaveId: string) => {
+      // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['performance'] });
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
     },
   });
 }
 
-// HRMS Dashboard - Mock implementation
+export function useRejectLeave() {
+  return useRejectLeaveRequest();
+}
+
+// HR Dashboard - Mock implementation
 export function useGetHRDashboard() {
   const { actor, isFetching } = useActor();
 
   return useQuery<HRDashboard>({
     queryKey: ['hrDashboard'],
     queryFn: async () => {
+      // TODO: Implement when backend method is available
       return {
         totalEmployees: BigInt(0),
         activeEmployees: BigInt(0),

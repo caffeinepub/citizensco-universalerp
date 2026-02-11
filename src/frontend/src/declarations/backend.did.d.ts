@@ -183,6 +183,21 @@ export interface ShoppingItem {
   'priceInCents' : bigint,
   'productDescription' : string,
 }
+export interface SidebarFinancialSection {
+  'overviewData' : {
+    'transactionVolume' : bigint,
+    'activeWallets' : bigint,
+    'recentTransactions' : Array<WalletTransaction>,
+    'totalBalance' : bigint,
+  },
+  'sectionName' : string,
+}
+export interface SidebarFinancialsResponse {
+  'financialSections' : Array<SidebarFinancialSection>,
+  'wallets' : Array<WalletOverviewResponse>,
+  'events' : Array<WalletEvent>,
+  'transactions' : Array<WalletTransaction>,
+}
 export interface StripeConfiguration {
   'allowedCountries' : Array<string>,
   'secretKey' : string,
@@ -240,6 +255,21 @@ export interface WalletEvent {
 }
 export type WalletEventId = string;
 export type WalletId = string;
+export interface WalletOverviewResponse {
+  'id' : WalletId,
+  'balance' : bigint,
+  'name' : string,
+  'description' : [] | [string],
+  'isActive' : boolean,
+  'currency' : string,
+  'eventCount' : bigint,
+  'transactionCount' : bigint,
+}
+export interface WalletSummaryData {
+  'events' : Array<WalletEvent>,
+  'wallet' : Wallet,
+  'transactions' : Array<WalletTransaction>,
+}
 export interface WalletTransaction {
   'id' : TransactionId,
   'status' : TransactionStatus,
@@ -309,6 +339,23 @@ export interface _SERVICE {
   'getOrder' : ActorMethod<[string], [] | [Order]>,
   'getOrganization' : ActorMethod<[string], [] | [Organization]>,
   'getOrganizationMembers' : ActorMethod<[string], Array<OrganizationMember>>,
+  'getOrganizationSidebarFinancials' : ActorMethod<
+    [string],
+    SidebarFinancialsResponse
+  >,
+  'getOrganizationWalletEvents' : ActorMethod<
+    [string, WalletId],
+    Array<WalletEvent>
+  >,
+  'getOrganizationWalletTransactions' : ActorMethod<
+    [string, WalletId],
+    Array<WalletTransaction>
+  >,
+  'getOrganizationWallets' : ActorMethod<[string], Array<Wallet>>,
+  'getOrganizationWalletsSummary' : ActorMethod<
+    [string],
+    Array<WalletOverviewResponse>
+  >,
   'getOrganizations' : ActorMethod<[], Array<Organization>>,
   'getPayroll' : ActorMethod<[string], [] | [Payroll]>,
   'getPerformanceRecord' : ActorMethod<[string], [] | [PerformanceRecord]>,
@@ -317,6 +364,7 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getWallet' : ActorMethod<[WalletId], [] | [Wallet]>,
   'getWalletEvent' : ActorMethod<[WalletEventId], [] | [WalletEvent]>,
+  'getWalletSummary' : ActorMethod<[WalletId], WalletSummaryData>,
   'getWalletTransaction' : ActorMethod<
     [TransactionId],
     [] | [WalletTransaction]

@@ -173,6 +173,80 @@ export const OrganizationMember = IDL.Record({
   'joinedAt' : Time,
   'roles' : IDL.Vec(OrganizationRole),
 });
+export const TransactionId = IDL.Text;
+export const TransactionStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'completed' : IDL.Null,
+  'failed' : IDL.Null,
+});
+export const TransactionType = IDL.Variant({
+  'deposit' : IDL.Null,
+  'withdrawal' : IDL.Null,
+  'transfer' : IDL.Null,
+});
+export const CurrencyCode = IDL.Text;
+export const WalletId = IDL.Text;
+export const WalletTransaction = IDL.Record({
+  'id' : TransactionId,
+  'status' : TransactionStatus,
+  'organizationId' : OrganizationId,
+  'transactionType' : TransactionType,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+  'amount' : IDL.Nat,
+  'walletId' : WalletId,
+});
+export const SidebarFinancialSection = IDL.Record({
+  'overviewData' : IDL.Record({
+    'transactionVolume' : IDL.Nat,
+    'activeWallets' : IDL.Nat,
+    'recentTransactions' : IDL.Vec(WalletTransaction),
+    'totalBalance' : IDL.Nat,
+  }),
+  'sectionName' : IDL.Text,
+});
+export const WalletOverviewResponse = IDL.Record({
+  'id' : WalletId,
+  'balance' : IDL.Nat,
+  'name' : IDL.Text,
+  'description' : IDL.Opt(IDL.Text),
+  'isActive' : IDL.Bool,
+  'currency' : IDL.Text,
+  'eventCount' : IDL.Nat,
+  'transactionCount' : IDL.Nat,
+});
+export const WalletEventId = IDL.Text;
+export const EventType = IDL.Text;
+export const WalletEvent = IDL.Record({
+  'id' : WalletEventId,
+  'organizationId' : OrganizationId,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'description' : IDL.Text,
+  'payload' : IDL.Opt(IDL.Text),
+  'walletId' : WalletId,
+  'eventType' : EventType,
+});
+export const SidebarFinancialsResponse = IDL.Record({
+  'financialSections' : IDL.Vec(SidebarFinancialSection),
+  'wallets' : IDL.Vec(WalletOverviewResponse),
+  'events' : IDL.Vec(WalletEvent),
+  'transactions' : IDL.Vec(WalletTransaction),
+});
+export const Wallet = IDL.Record({
+  'id' : WalletId,
+  'organizationId' : OrganizationId,
+  'balance' : IDL.Nat,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'createdBy' : IDL.Principal,
+  'description' : IDL.Opt(IDL.Text),
+  'isActive' : IDL.Bool,
+  'updatedAt' : Time,
+  'currency' : CurrencyCode,
+});
 export const Payroll = IDL.Record({
   'id' : IDL.Text,
   'salary' : IDL.Nat,
@@ -220,54 +294,10 @@ export const StripeSessionStatus = IDL.Variant({
   }),
   'failed' : IDL.Record({ 'error' : IDL.Text }),
 });
-export const WalletId = IDL.Text;
-export const CurrencyCode = IDL.Text;
-export const Wallet = IDL.Record({
-  'id' : WalletId,
-  'organizationId' : OrganizationId,
-  'balance' : IDL.Nat,
-  'name' : IDL.Text,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'description' : IDL.Opt(IDL.Text),
-  'isActive' : IDL.Bool,
-  'updatedAt' : Time,
-  'currency' : CurrencyCode,
-});
-export const WalletEventId = IDL.Text;
-export const EventType = IDL.Text;
-export const WalletEvent = IDL.Record({
-  'id' : WalletEventId,
-  'organizationId' : OrganizationId,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'description' : IDL.Text,
-  'payload' : IDL.Opt(IDL.Text),
-  'walletId' : WalletId,
-  'eventType' : EventType,
-});
-export const TransactionId = IDL.Text;
-export const TransactionStatus = IDL.Variant({
-  'pending' : IDL.Null,
-  'completed' : IDL.Null,
-  'failed' : IDL.Null,
-});
-export const TransactionType = IDL.Variant({
-  'deposit' : IDL.Null,
-  'withdrawal' : IDL.Null,
-  'transfer' : IDL.Null,
-});
-export const WalletTransaction = IDL.Record({
-  'id' : TransactionId,
-  'status' : TransactionStatus,
-  'organizationId' : OrganizationId,
-  'transactionType' : TransactionType,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'updatedAt' : Time,
-  'currency' : CurrencyCode,
-  'amount' : IDL.Nat,
-  'walletId' : WalletId,
+export const WalletSummaryData = IDL.Record({
+  'events' : IDL.Vec(WalletEvent),
+  'wallet' : Wallet,
+  'transactions' : IDL.Vec(WalletTransaction),
 });
 export const StripeConfiguration = IDL.Record({
   'allowedCountries' : IDL.Vec(IDL.Text),
@@ -353,6 +383,27 @@ export const idlService = IDL.Service({
       [IDL.Vec(OrganizationMember)],
       ['query'],
     ),
+  'getOrganizationSidebarFinancials' : IDL.Func(
+      [IDL.Text],
+      [SidebarFinancialsResponse],
+      ['query'],
+    ),
+  'getOrganizationWalletEvents' : IDL.Func(
+      [IDL.Text, WalletId],
+      [IDL.Vec(WalletEvent)],
+      ['query'],
+    ),
+  'getOrganizationWalletTransactions' : IDL.Func(
+      [IDL.Text, WalletId],
+      [IDL.Vec(WalletTransaction)],
+      ['query'],
+    ),
+  'getOrganizationWallets' : IDL.Func([IDL.Text], [IDL.Vec(Wallet)], ['query']),
+  'getOrganizationWalletsSummary' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(WalletOverviewResponse)],
+      ['query'],
+    ),
   'getOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
   'getPayroll' : IDL.Func([IDL.Text], [IDL.Opt(Payroll)], ['query']),
   'getPerformanceRecord' : IDL.Func(
@@ -373,6 +424,7 @@ export const idlService = IDL.Service({
       [IDL.Opt(WalletEvent)],
       ['query'],
     ),
+  'getWalletSummary' : IDL.Func([WalletId], [WalletSummaryData], ['query']),
   'getWalletTransaction' : IDL.Func(
       [TransactionId],
       [IDL.Opt(WalletTransaction)],
@@ -563,6 +615,80 @@ export const idlFactory = ({ IDL }) => {
     'joinedAt' : Time,
     'roles' : IDL.Vec(OrganizationRole),
   });
+  const TransactionId = IDL.Text;
+  const TransactionStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'completed' : IDL.Null,
+    'failed' : IDL.Null,
+  });
+  const TransactionType = IDL.Variant({
+    'deposit' : IDL.Null,
+    'withdrawal' : IDL.Null,
+    'transfer' : IDL.Null,
+  });
+  const CurrencyCode = IDL.Text;
+  const WalletId = IDL.Text;
+  const WalletTransaction = IDL.Record({
+    'id' : TransactionId,
+    'status' : TransactionStatus,
+    'organizationId' : OrganizationId,
+    'transactionType' : TransactionType,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'updatedAt' : Time,
+    'currency' : CurrencyCode,
+    'amount' : IDL.Nat,
+    'walletId' : WalletId,
+  });
+  const SidebarFinancialSection = IDL.Record({
+    'overviewData' : IDL.Record({
+      'transactionVolume' : IDL.Nat,
+      'activeWallets' : IDL.Nat,
+      'recentTransactions' : IDL.Vec(WalletTransaction),
+      'totalBalance' : IDL.Nat,
+    }),
+    'sectionName' : IDL.Text,
+  });
+  const WalletOverviewResponse = IDL.Record({
+    'id' : WalletId,
+    'balance' : IDL.Nat,
+    'name' : IDL.Text,
+    'description' : IDL.Opt(IDL.Text),
+    'isActive' : IDL.Bool,
+    'currency' : IDL.Text,
+    'eventCount' : IDL.Nat,
+    'transactionCount' : IDL.Nat,
+  });
+  const WalletEventId = IDL.Text;
+  const EventType = IDL.Text;
+  const WalletEvent = IDL.Record({
+    'id' : WalletEventId,
+    'organizationId' : OrganizationId,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'description' : IDL.Text,
+    'payload' : IDL.Opt(IDL.Text),
+    'walletId' : WalletId,
+    'eventType' : EventType,
+  });
+  const SidebarFinancialsResponse = IDL.Record({
+    'financialSections' : IDL.Vec(SidebarFinancialSection),
+    'wallets' : IDL.Vec(WalletOverviewResponse),
+    'events' : IDL.Vec(WalletEvent),
+    'transactions' : IDL.Vec(WalletTransaction),
+  });
+  const Wallet = IDL.Record({
+    'id' : WalletId,
+    'organizationId' : OrganizationId,
+    'balance' : IDL.Nat,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'createdBy' : IDL.Principal,
+    'description' : IDL.Opt(IDL.Text),
+    'isActive' : IDL.Bool,
+    'updatedAt' : Time,
+    'currency' : CurrencyCode,
+  });
   const Payroll = IDL.Record({
     'id' : IDL.Text,
     'salary' : IDL.Nat,
@@ -610,54 +736,10 @@ export const idlFactory = ({ IDL }) => {
     }),
     'failed' : IDL.Record({ 'error' : IDL.Text }),
   });
-  const WalletId = IDL.Text;
-  const CurrencyCode = IDL.Text;
-  const Wallet = IDL.Record({
-    'id' : WalletId,
-    'organizationId' : OrganizationId,
-    'balance' : IDL.Nat,
-    'name' : IDL.Text,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'description' : IDL.Opt(IDL.Text),
-    'isActive' : IDL.Bool,
-    'updatedAt' : Time,
-    'currency' : CurrencyCode,
-  });
-  const WalletEventId = IDL.Text;
-  const EventType = IDL.Text;
-  const WalletEvent = IDL.Record({
-    'id' : WalletEventId,
-    'organizationId' : OrganizationId,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'description' : IDL.Text,
-    'payload' : IDL.Opt(IDL.Text),
-    'walletId' : WalletId,
-    'eventType' : EventType,
-  });
-  const TransactionId = IDL.Text;
-  const TransactionStatus = IDL.Variant({
-    'pending' : IDL.Null,
-    'completed' : IDL.Null,
-    'failed' : IDL.Null,
-  });
-  const TransactionType = IDL.Variant({
-    'deposit' : IDL.Null,
-    'withdrawal' : IDL.Null,
-    'transfer' : IDL.Null,
-  });
-  const WalletTransaction = IDL.Record({
-    'id' : TransactionId,
-    'status' : TransactionStatus,
-    'organizationId' : OrganizationId,
-    'transactionType' : TransactionType,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'updatedAt' : Time,
-    'currency' : CurrencyCode,
-    'amount' : IDL.Nat,
-    'walletId' : WalletId,
+  const WalletSummaryData = IDL.Record({
+    'events' : IDL.Vec(WalletEvent),
+    'wallet' : Wallet,
+    'transactions' : IDL.Vec(WalletTransaction),
   });
   const StripeConfiguration = IDL.Record({
     'allowedCountries' : IDL.Vec(IDL.Text),
@@ -748,6 +830,31 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(OrganizationMember)],
         ['query'],
       ),
+    'getOrganizationSidebarFinancials' : IDL.Func(
+        [IDL.Text],
+        [SidebarFinancialsResponse],
+        ['query'],
+      ),
+    'getOrganizationWalletEvents' : IDL.Func(
+        [IDL.Text, WalletId],
+        [IDL.Vec(WalletEvent)],
+        ['query'],
+      ),
+    'getOrganizationWalletTransactions' : IDL.Func(
+        [IDL.Text, WalletId],
+        [IDL.Vec(WalletTransaction)],
+        ['query'],
+      ),
+    'getOrganizationWallets' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(Wallet)],
+        ['query'],
+      ),
+    'getOrganizationWalletsSummary' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(WalletOverviewResponse)],
+        ['query'],
+      ),
     'getOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
     'getPayroll' : IDL.Func([IDL.Text], [IDL.Opt(Payroll)], ['query']),
     'getPerformanceRecord' : IDL.Func(
@@ -768,6 +875,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(WalletEvent)],
         ['query'],
       ),
+    'getWalletSummary' : IDL.Func([WalletId], [WalletSummaryData], ['query']),
     'getWalletTransaction' : IDL.Func(
         [TransactionId],
         [IDL.Opt(WalletTransaction)],

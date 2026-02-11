@@ -1,55 +1,45 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T12:41:18.809Z",
+  "generatedAt": "2026-02-11T04:29:00.509Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
+    "total": 3,
     "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Prevent post-migration deploy failures caused by missing access-control initialization secrets by making access-control initialization non-trapping and explicitly reportable at runtime (e.g., missing/invalid CAFFEINE_ADMIN_TOKEN should not trap the canister on install/upgrade; it should leave the canister running in an uninitialized state).",
+        "summary": "Implement the backend wallet read APIs needed for the Wallet Overview experience: (1) listWallets scoped to an organization, (2) getWallet by walletId (and organization authorization), and (3) getWalletOverviewResponse that returns per-wallet overview metrics for the selected organization. Enforce authorization so organization members can only access wallets for organizations they belong to, while global admins may access any organization.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Add backend APIs to support a deployment/readiness check for Activity 2 Step 6, including: (1) whether access control is initialized, (2) whether Stripe is configured, and (3) any other critical runtime prerequisites needed for the app to function without trapping.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Expose the deployment/readiness status in the frontend UI so users can self-diagnose why a just-deployed version is failing, including user-facing English messages for missing initialization/configuration and the recommended next action (e.g., “Admin setup required: set CAFFEINE_ADMIN_TOKEN and run initialization.”).",
+        "summary": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/DeploymentReadinessBanner.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/WalletOverviewPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/DeploymentReadinessBanner.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/pages/WalletOverviewPage.tsx"
         ]
       },
       {
-        "id": "REQ-4",
-        "summary": "Add a short, step-by-step “Activity 2 deployment checklist” document in the repo that explicitly reflects the confirm-at-each-step workflow and includes guidance to avoid desynchronization (e.g., do not publish manual changes mid-step; verify readiness endpoint before publishing).",
+        "id": "REQ-3",
+        "summary": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+          "frontend/src/App.tsx",
+          "frontend/src/components/Header.tsx"
         ],
         "matchedFiles": [
-          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
+          "frontend/src/App.tsx",
+          "frontend/src/components/Header.tsx"
         ]
       }
     ]
@@ -60,14 +50,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
     "frontend/src/App.tsx",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/DeploymentReadinessBanner.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/pages/WalletOverviewPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

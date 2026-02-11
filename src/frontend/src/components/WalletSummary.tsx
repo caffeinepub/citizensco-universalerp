@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
+import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGetUserWallets, useGetRecentTransactionEvents } from '../hooks/useQueries';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useGetOrganizationWalletsSummary, useGetOrganizationWalletTransactions } from '../hooks/useQueries';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useEffect } from 'react';
-import { WalletStatus, TransactionStatusNew } from '../types/erp-types';
+import { TransactionType } from '../backend';
 
 interface WalletSummaryProps {
   isLoading?: boolean;
@@ -12,59 +14,54 @@ interface WalletSummaryProps {
 }
 
 export default function WalletSummary({ isLoading: externalLoading = false, showTransactions = true }: WalletSummaryProps) {
-  const { data: wallets, isLoading: walletsLoading, refetch: refetchWallets } = useGetUserWallets();
-  const { data: transactionEvents, isLoading: eventsLoading, refetch: refetchEvents } = useGetRecentTransactionEvents(10);
+  const { activeOrganization } = useOrganization();
+  const orgId = activeOrganization?.id || null;
+
+  const { data: wallets, isLoading: walletsLoading, refetch: refetchWallets, error: walletsError } = useGetOrganizationWalletsSummary(orgId);
+  const { data: transactions, isLoading: transactionsLoading, refetch: refetchTransactions, error: transactionsError } = useGetOrganizationWalletTransactions(orgId, '');
 
   const isLoading = externalLoading || walletsLoading;
 
   // Auto-refresh is handled by React Query refetchInterval, but we can manually trigger on mount
   useEffect(() => {
-    refetchWallets();
-    if (showTransactions) {
-      refetchEvents();
+    if (orgId) {
+      refetchWallets();
+      if (showTransactions) {
+        refetchTransactions();
+      }
     }
-  }, [refetchWallets, refetchEvents, showTransactions]);
+  }, [orgId, refetchWallets, refetchTransactions, showTransactions]);
 
   const totalBalance = wallets?.reduce((sum, wallet) => sum + Number(wallet.balance), 0) || 0;
-  const connectedWallets = wallets?.filter(w => w.status === WalletStatus.active).length || 0;
+  const connectedWallets = wallets?.filter(w => w.isActive).length || 0;
 
-  const getStatusBadge = (status: WalletStatus): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    switch (status) {
-      case WalletStatus.active:
-        return 'default';
-      case WalletStatus.inactive:
-        return 'secondary';
-      case WalletStatus.suspended:
-        return 'destructive';
-      case WalletStatus.closed:
-        return 'outline';
-      default:
-        return 'secondary';
+  const getTransactionTypeIcon = (type: TransactionType) => {
+    if (type === TransactionType.deposit) {
+      return <ArrowDownRight className="h-4 w-4 text-green-500" />;
     }
+    return <ArrowUpRight className="h-4 w-4 text-red-500" />;
   };
 
-  const getStatusLabel = (status: WalletStatus): string => {
-    switch (status) {
-      case WalletStatus.active:
-        return 'active';
-      case WalletStatus.inactive:
-        return 'inactive';
-      case WalletStatus.suspended:
-        return 'suspended';
-      case WalletStatus.closed:
-        return 'closed';
-      default:
-        return 'unknown';
+  const getTransactionColor = (type: TransactionType) => {
+    if (type === TransactionType.deposit) {
+      return 'text-green-500';
     }
+    return 'text-red-500';
   };
 
-  const getWalletTypeLabel = (walletType: any) => {
-    if (walletType.__kind__ === 'icp') return 'ICP';
-    if (walletType.__kind__ === 'offChain') return 'Off-chain';
-    if (walletType.__kind__ === 'fiat') return 'Fiat';
-    if (walletType.__kind__ === 'digitalAsset') return 'Digital Asset';
-    if (walletType.__kind__ === 'custom') return walletType.custom;
-    return 'Unknown';
+  const getTransactionSign = (type: TransactionType) => {
+    if (type === TransactionType.deposit) {
+      return '+';
+    }
+    return '-';
+  };
+
+  const getTransactionTypeLabel = (type: TransactionType): string => {
+    return type.toString();
+  };
+
+  const getTransactionStatusLabel = (status: any): string => {
+    return status.toString();
   };
 
   const formatTimestamp = (timestamp: bigint) => {
@@ -72,46 +69,25 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
     return date.toLocaleString();
   };
 
-  const getTransactionTypeIcon = (txn: any) => {
-    const type = txn.transactionType.toLowerCase();
-    if (type.includes('incoming') || type.includes('deposit') || type.includes('credit')) {
-      return <ArrowDownRight className="h-4 w-4 text-green-500" />;
-    }
-    return <ArrowUpRight className="h-4 w-4 text-red-500" />;
-  };
-
-  const getTransactionColor = (txn: any) => {
-    const type = txn.transactionType.toLowerCase();
-    if (type.includes('incoming') || type.includes('deposit') || type.includes('credit')) {
-      return 'text-green-500';
-    }
-    return 'text-red-500';
-  };
-
-  const getTransactionSign = (txn: any) => {
-    const type = txn.transactionType.toLowerCase();
-    if (type.includes('incoming') || type.includes('deposit') || type.includes('credit')) {
-      return '+';
-    }
-    return '-';
-  };
-
-  const getTransactionStatusLabel = (status: TransactionStatusNew): string => {
-    switch (status) {
-      case TransactionStatusNew.pending:
-        return 'pending';
-      case TransactionStatusNew.completed:
-        return 'completed';
-      case TransactionStatusNew.failed:
-        return 'failed';
-      case TransactionStatusNew.cancelled:
-        return 'cancelled';
-      case TransactionStatusNew.reversed:
-        return 'reversed';
-      default:
-        return 'unknown';
-    }
-  };
+  // Show prompt when no organization is selected
+  if (!orgId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wallet Summary</CardTitle>
+          <CardDescription>Organization wallet overview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please select an organization to view wallet data
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -126,6 +102,28 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
       </Card>
     );
   }
+
+  // Show error if authorization failed
+  if (walletsError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wallet Summary</CardTitle>
+          <CardDescription>Organization wallet overview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {walletsError instanceof Error ? walletsError.message : 'Failed to load wallet data'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const recentTransactions = transactions?.slice(0, 10) || [];
 
   return (
     <div className="space-y-4">
@@ -148,7 +146,7 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected Wallets</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Wallets</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -165,7 +163,7 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Wallet Overview</CardTitle>
-              <CardDescription>Current balances and connection status (live updates)</CardDescription>
+              <CardDescription>Current balances and status (live updates)</CardDescription>
             </div>
             <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
           </div>
@@ -181,20 +179,20 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
                     </div>
                     <div>
                       <p className="font-medium">{wallet.name}</p>
-                      <p className="text-sm text-muted-foreground">{getWalletTypeLabel(wallet.walletType)}</p>
+                      <p className="text-sm text-muted-foreground">{wallet.currency}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">${(Number(wallet.balance) / 100).toFixed(2)}</p>
-                    <Badge variant={getStatusBadge(wallet.status)} className="text-xs">
-                      {getStatusLabel(wallet.status)}
+                    <Badge variant={wallet.isActive ? 'default' : 'secondary'} className="text-xs">
+                      {wallet.isActive ? 'active' : 'inactive'}
                     </Badge>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No wallets found. Add a wallet to get started.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No wallets found for this organization. Add a wallet to get started.</p>
           )}
         </CardContent>
       </Card>
@@ -211,40 +209,44 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
             </div>
           </CardHeader>
           <CardContent>
-            {transactionEvents && transactionEvents.length > 0 ? (
+            {transactionsError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {transactionsError instanceof Error ? transactionsError.message : 'Failed to load transactions'}
+                </AlertDescription>
+              </Alert>
+            ) : recentTransactions.length > 0 ? (
               <div className="space-y-3">
-                {transactionEvents.map((event) => {
-                  const txn = event.transaction;
-                  return (
-                    <div key={txn.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          txn.transactionType.toLowerCase().includes('incoming') ? 'bg-green-500/10' : 'bg-red-500/10'
-                        }`}>
-                          {getTransactionTypeIcon(txn)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{txn.typeIdentifier}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatTimestamp(txn.createdAt)}
-                          </p>
-                        </div>
+                {recentTransactions.map((txn) => (
+                  <div key={txn.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        txn.transactionType === TransactionType.deposit ? 'bg-green-500/10' : 'bg-red-500/10'
+                      }`}>
+                        {getTransactionTypeIcon(txn.transactionType)}
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${getTransactionColor(txn)}`}>
-                          {getTransactionSign(txn)}${(Number(txn.amount) / 100).toFixed(2)}
+                      <div>
+                        <p className="text-sm font-medium">{getTransactionTypeLabel(txn.transactionType)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatTimestamp(txn.createdAt)}
                         </p>
-                        <Badge variant="outline" className="text-xs">
-                          {getTransactionStatusLabel(txn.status)}
-                        </Badge>
                       </div>
                     </div>
-                  );
-                })}
+                    <div className="text-right">
+                      <p className={`font-bold ${getTransactionColor(txn.transactionType)}`}>
+                        {getTransactionSign(txn.transactionType)}${(Number(txn.amount) / 100).toFixed(2)}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {getTransactionStatusLabel(txn.status)}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                {eventsLoading ? 'Loading transactions...' : 'No recent transactions'}
+                {transactionsLoading ? 'Loading transactions...' : 'No recent transactions for this organization'}
               </p>
             )}
           </CardContent>

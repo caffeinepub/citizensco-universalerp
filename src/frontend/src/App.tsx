@@ -15,6 +15,8 @@ import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailurePage from './pages/PaymentFailurePage';
+import Activity3RequirementsPage from './pages/Activity3RequirementsPage';
+import WalletOverviewPage from './pages/WalletOverviewPage';
 import { CartProvider } from './contexts/CartContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { WalletConnectorProvider } from './contexts/WalletConnectorContext';
@@ -86,6 +88,18 @@ const paymentFailureRoute = createRoute({
   component: PaymentFailurePage,
 });
 
+const activity3Route = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/activity-3',
+  component: Activity3RequirementsPage,
+});
+
+const walletOverviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/wallets',
+  component: WalletOverviewPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   adminRoute,
@@ -95,6 +109,8 @@ const routeTree = rootRoute.addChildren([
   ordersRoute,
   paymentSuccessRoute,
   paymentFailureRoute,
+  activity3Route,
+  walletOverviewRoute,
 ]);
 
 const router = createRouter({ routeTree });

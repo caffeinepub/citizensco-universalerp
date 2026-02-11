@@ -3,113 +3,93 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Wallet, Plus, Trash2, RefreshCw, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Wallet, Plus, Trash2, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetAllWallets, useAddWallet, useDeleteWallet } from '../hooks/useQueries';
-import { UnifiedWallet, WalletType, WalletStatus } from '../types/erp-types';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useGetOrganizationWallets, useAddOrganizationWallet, useDeleteOrganizationWallet } from '../hooks/useQueries';
+import { useOrganization } from '../contexts/OrganizationContext';
 
 export default function WalletManagement() {
-  const { identity } = useInternetIdentity();
-  const { data: wallets, isLoading, refetch } = useGetAllWallets();
-  const addWalletMutation = useAddWallet();
-  const deleteWalletMutation = useDeleteWallet();
+  const { activeOrganization } = useOrganization();
+  const orgId = activeOrganization?.id || null;
+
+  const { data: wallets, isLoading, refetch, error } = useGetOrganizationWallets(orgId);
+  const addWalletMutation = useAddOrganizationWallet();
+  const deleteWalletMutation = useDeleteOrganizationWallet();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [walletName, setWalletName] = useState('');
   const [walletDescription, setWalletDescription] = useState('');
-  const [walletType, setWalletType] = useState<'icp' | 'offChain' | 'fiat'>('icp');
   const [currency, setCurrency] = useState('USD');
 
   const handleAddWallet = async () => {
-    if (!walletName || !identity) {
+    if (!walletName || !orgId) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const walletTypeObj: WalletType = 
-      walletType === 'icp' ? { __kind__: 'icp', icp: null } :
-      walletType === 'offChain' ? { __kind__: 'offChain', offChain: null } :
-      { __kind__: 'fiat', fiat: null };
-
-    const newWallet: UnifiedWallet = {
-      id: `wallet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      ownerId: identity.getPrincipal(),
-      walletType: walletTypeObj,
-      name: walletName,
-      description: walletDescription,
-      balance: BigInt(0),
-      currency: currency,
-      status: WalletStatus.active,
-      createdAt: BigInt(Date.now() * 1000000), // Convert to nanoseconds
-    };
-
     try {
-      await addWalletMutation.mutateAsync(newWallet);
-      toast.success('Wallet added successfully');
+      await addWalletMutation.mutateAsync({
+        organizationId: orgId,
+        name: walletName,
+        description: walletDescription || undefined,
+        currency,
+      });
       setIsAddDialogOpen(false);
       setWalletName('');
       setWalletDescription('');
-      setWalletType('icp');
       setCurrency('USD');
       refetch();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add wallet');
+      // Error already handled by mutation onError with toast
+      console.error('Failed to add wallet:', error);
     }
   };
 
   const handleDeleteWallet = async (walletId: string) => {
+    if (!orgId) {
+      toast.error('No organization selected');
+      return;
+    }
+
     try {
-      await deleteWalletMutation.mutateAsync(walletId);
-      toast.success('Wallet removed successfully');
+      await deleteWalletMutation.mutateAsync({ organizationId: orgId, walletId });
       refetch();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to remove wallet');
+      // Error already handled by mutation onError with toast
+      console.error('Failed to delete wallet:', error);
     }
   };
 
-  const getStatusColor = (status: WalletStatus): string => {
-    switch (status) {
-      case WalletStatus.active:
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case WalletStatus.inactive:
-        return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
-      case WalletStatus.suspended:
-        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case WalletStatus.closed:
-        return 'bg-red-500/10 text-red-500 border-red-500/20';
-      default:
-        return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
-    }
+  const formatTimestamp = (timestamp: bigint) => {
+    const date = new Date(Number(timestamp) / 1000000);
+    return date.toLocaleDateString();
   };
 
-  const getStatusLabel = (status: WalletStatus): string => {
-    switch (status) {
-      case WalletStatus.active:
-        return 'active';
-      case WalletStatus.inactive:
-        return 'inactive';
-      case WalletStatus.suspended:
-        return 'suspended';
-      case WalletStatus.closed:
-        return 'closed';
-      default:
-        return 'unknown';
-    }
-  };
-
-  const getWalletTypeLabel = (walletType: WalletType) => {
-    if (walletType.__kind__ === 'icp') return 'ICP';
-    if (walletType.__kind__ === 'offChain') return 'Off-chain';
-    if (walletType.__kind__ === 'fiat') return 'Fiat';
-    if (walletType.__kind__ === 'digitalAsset') return 'Digital Asset';
-    if (walletType.__kind__ === 'custom') return walletType.custom;
-    return 'Unknown';
-  };
+  // Show prompt when no organization is selected
+  if (!orgId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Wallet Management
+          </CardTitle>
+          <CardDescription>Manage wallets for your organization</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please select an organization to manage wallets
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -120,11 +100,11 @@ export default function WalletManagement() {
               Wallet Management
               {isLoading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
             </CardTitle>
-            <CardDescription>Manage your wallets and payment methods (live updates)</CardDescription>
+            <CardDescription>Manage wallets for {activeOrganization?.name} (live updates)</CardDescription>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled={!orgId}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Wallet
               </Button>
@@ -133,7 +113,7 @@ export default function WalletManagement() {
               <DialogHeader>
                 <DialogTitle>Add New Wallet</DialogTitle>
                 <DialogDescription>
-                  Connect a new wallet to your account
+                  Create a new wallet for {activeOrganization?.name}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -147,26 +127,13 @@ export default function WalletManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="walletDescription">Description</Label>
+                  <Label htmlFor="walletDescription">Description (optional)</Label>
                   <Input
                     id="walletDescription"
-                    placeholder="e.g., Personal spending wallet"
+                    placeholder="e.g., Primary operating wallet"
                     value={walletDescription}
                     onChange={(e) => setWalletDescription(e.target.value)}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="walletType">Wallet Type</Label>
-                  <Select value={walletType} onValueChange={(value: any) => setWalletType(value)}>
-                    <SelectTrigger id="walletType">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="icp">ICP Wallet</SelectItem>
-                      <SelectItem value="offChain">Off-chain Wallet</SelectItem>
-                      <SelectItem value="fiat">Fiat Wallet</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
@@ -192,7 +159,14 @@ export default function WalletManagement() {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error instanceof Error ? error.message : 'Failed to load wallets'}
+            </AlertDescription>
+          </Alert>
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -201,16 +175,16 @@ export default function WalletManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Balance</TableHead>
                 <TableHead>Currency</TableHead>
+                <TableHead>Balance</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {wallets.map((wallet) => (
-                <TableRow key={wallet.id}>
+                <tr key={wallet.id} className="border-b">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -222,13 +196,15 @@ export default function WalletManagement() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{getWalletTypeLabel(wallet.walletType)}</TableCell>
-                  <TableCell className="font-bold">${(Number(wallet.balance) / 100).toFixed(2)}</TableCell>
                   <TableCell>{wallet.currency}</TableCell>
+                  <TableCell className="font-mono">${(Number(wallet.balance) / 100).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(wallet.status)}>
-                      {getStatusLabel(wallet.status)}
+                    <Badge variant={wallet.isActive ? 'default' : 'secondary'}>
+                      {wallet.isActive ? 'active' : 'inactive'}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatTimestamp(wallet.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -238,20 +214,22 @@ export default function WalletManagement() {
                       disabled={deleteWalletMutation.isPending}
                     >
                       {deleteWalletMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-destructive" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Trash2 className="h-4 w-4 text-destructive" />
                       )}
                     </Button>
                   </TableCell>
-                </TableRow>
+                </tr>
               ))}
             </TableBody>
           </Table>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No wallets found. Add a wallet to get started.
-          </p>
+          <div className="text-center py-8">
+            <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">No wallets found for this organization</p>
+            <p className="text-xs text-muted-foreground mt-1">Click "Add Wallet" to create your first wallet</p>
+          </div>
         )}
       </CardContent>
     </Card>
