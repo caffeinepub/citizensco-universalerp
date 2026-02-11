@@ -70,30 +70,67 @@ Execute the one-time project migration to update the project structure.
 Build the application again after the migration to ensure compatibility with the new structure.
 
 **Verification:**
-- Build completes successfully with new structure
-- No migration-related errors
-- All dependencies resolve correctly
+- ✅ Build completes successfully with new structure
+- ✅ No migration-related errors
+- ✅ All dependencies resolve correctly
+- ✅ TypeScript compilation succeeds
+- ✅ Backend interface typings align with actor initialization
+
+**Build Notes:**
+- Updated backend.d.ts to include `_initializeAccessControlWithSecret` method used during actor initialization
+- All React Query hooks properly typed against updated backend interface
+- No missing module or lockfile errors detected
+- Post-migration build verified and ready for deployment
 
 ---
 
-### Step 6: Deploy Post-Migration Build
-**Status:** 🔄 IN PROGRESS
+### Step 6: Deploy Post-Migration Build & Verify Readiness
+**Status:** ⏳ PENDING
 
-Deploy the post-migration build to the network.
+Deploy the post-migration build to the network and verify deployment readiness.
 
 **Verification:**
-- Deployment completes successfully
+- Deployment completes successfully without errors
 - Application is accessible at the deployment URL
-- **Check deployment readiness status in the UI** (admin users will see a banner if prerequisites are not met)
-- Verify access control initialization status
-- Verify Stripe configuration status
+- Application loads without runtime errors
+- Admin user can log in successfully
+- **Deployment readiness status is visible in the UI**
 
-**Next Actions:**
-1. Log in as an admin user
-2. Check the deployment readiness banner at the top of the page
-3. If access control is not initialized, ensure the `CAFFEINE_ADMIN_TOKEN` environment variable is set
-4. If Stripe is not configured, navigate to the admin dashboard and configure Stripe settings
-5. Confirm all readiness checks pass before proceeding to Step 7
+**Readiness Checks:**
+
+1. **Access Control Initialization**
+   - Admin users will see a deployment readiness banner at the top of the page
+   - The banner displays the current status of access control initialization
+   - **If Not Initialized:**
+     - Status will show "Access Control Initialization: Not Initialized"
+     - Recommendation: "Set CAFFEINE_ADMIN_TOKEN environment variable and redeploy the backend canister"
+     - **Action Required:** Configure the `CAFFEINE_ADMIN_TOKEN` environment variable with a secure secret, then redeploy the backend canister
+   - **If Initialized:**
+     - Status will show "Access Control Initialization: Initialized" with a green checkmark
+     - No action required
+
+2. **Stripe Configuration**
+   - The banner also displays the current status of Stripe configuration
+   - **If Not Configured:**
+     - Status will show "Stripe Configuration: Not Configured"
+     - Recommendation: "Navigate to Admin Dashboard to configure Stripe payment settings"
+     - **Action Required:** Click "Go to Admin Dashboard" button in the banner, or navigate to the Admin Dashboard manually
+     - In the Admin Dashboard, you'll see a "Deployment Readiness" section at the top
+     - Configure Stripe by entering your Stripe secret key and allowed countries in the Products tab
+   - **If Configured:**
+     - Status will show "Stripe Configuration: Configured" with a green checkmark
+     - No action required
+
+3. **All Systems Ready**
+   - When both checks pass, the banner will display: "All systems ready for deployment"
+   - The Admin Dashboard will show "All Systems Ready" with a green success message
+   - You may proceed to Step 7
+
+**Important Notes:**
+- The deployment readiness banner is visible to admin users only
+- The banner appears even when all checks pass, providing continuous visibility of system status
+- The Admin Dashboard includes a dedicated "Deployment Readiness" section with detailed status for each check
+- Do not proceed to Step 7 until all readiness checks show as "Ready"
 
 ---
 
@@ -104,9 +141,9 @@ Publish the deployed application to make it live for all users.
 
 **Prerequisites:**
 - Step 6 deployment must be successful
-- **Deployment readiness status must show all systems ready**
-- Access control must be initialized
-- Stripe must be configured (if payment functionality is required)
+- **Deployment readiness banner must show "All systems ready for deployment"**
+- Access control must be initialized (green checkmark in UI)
+- Stripe must be configured (green checkmark in UI)
 - Admin verification must be complete
 
 **Verification:**
@@ -114,8 +151,9 @@ Publish the deployed application to make it live for all users.
 - All features function correctly in production
 - No errors in browser console
 - Authentication and authorization work properly
+- Payment functionality works as expected
 
-**⚠️ CRITICAL:** Do not proceed to this step until the deployment readiness banner shows all systems are ready. Publishing with incomplete configuration may result in a non-functional application.
+**⚠️ CRITICAL:** Do not proceed to this step until the deployment readiness UI shows all systems are ready. Publishing with incomplete configuration may result in a non-functional application.
 
 ---
 
@@ -126,17 +164,29 @@ Publish the deployed application to make it live for all users.
 
 ### Issue: Access Control Not Initialized
 **Solution:** 
-1. Ensure the `CAFFEINE_ADMIN_TOKEN` environment variable is set correctly
-2. Redeploy the backend canister
+1. Set the `CAFFEINE_ADMIN_TOKEN` environment variable with a secure secret value
+2. Redeploy the backend canister using the deployment command
 3. Verify the admin principal is registered
+4. Refresh the application and check the deployment readiness banner
+5. The status should now show "Access Control Initialization: Initialized"
 
 ### Issue: Stripe Not Configured
 **Solution:**
-1. Log in as an admin
-2. Navigate to the admin dashboard
-3. Enter Stripe secret key and allowed countries
-4. Save the configuration
-5. Verify the readiness banner updates
+1. Log in as an admin user
+2. Check the deployment readiness banner at the top of the page
+3. Click "Go to Admin Dashboard" button or navigate to /admin
+4. Review the "Deployment Readiness" section at the top of the Admin Dashboard
+5. Navigate to the Products tab
+6. Enter your Stripe secret key and select allowed countries
+7. Save the Stripe configuration
+8. Return to the deployment readiness banner to verify the status updates to "Configured"
+
+### Issue: Deployment Readiness Banner Not Visible
+**Solution:**
+1. Ensure you are logged in as an admin user
+2. The banner only appears for users with admin privileges
+3. If you are an admin and still don't see the banner, check the browser console for errors
+4. Verify the backend is responding correctly to `isCallerAdmin()` and `isStripeConfigured()` calls
 
 ### Issue: Manual Publish Interrupts Flow
 **Solution:**
@@ -144,15 +194,23 @@ Publish the deployed application to make it live for all users.
 2. If a manual publish occurred, restore to the last confirmed step
 3. Resume the checklist from that point
 
+### Issue: TypeScript Build Errors After Migration
+**Solution:**
+1. Verify backend.d.ts includes all methods used by frontend
+2. Check that actor initialization methods are properly typed
+3. Ensure all React Query hooks use correct backend interface types
+4. Run `npm run typescript-check` to identify specific type errors
+
 ---
 
 ## Important Notes
 
 1. **Step-by-Step Confirmation:** Always wait for confirmation before proceeding to the next step.
 2. **No Manual Changes:** Do not make manual changes or publish between steps.
-3. **Readiness Verification:** Always check the deployment readiness status before publishing.
-4. **Admin Access Required:** Some verification steps require admin access to the application.
-5. **Environment Variables:** Ensure all required environment variables are set before deployment.
+3. **Readiness Verification:** Always check the deployment readiness status in the UI before publishing.
+4. **Admin Access Required:** Deployment readiness verification requires admin access to the application.
+5. **Environment Variables:** Ensure all required environment variables (especially `CAFFEINE_ADMIN_TOKEN`) are set before deployment.
+6. **UI Visibility:** The deployment readiness banner and Admin Dashboard section provide real-time status updates.
 
 ---
 
@@ -174,10 +232,11 @@ If any step fails or produces unexpected results:
 If you encounter issues not covered in this checklist:
 - Review the application logs for detailed error messages
 - Check the deployment readiness banner for specific recommendations
+- Review the Admin Dashboard "Deployment Readiness" section for detailed status
 - Ensure all prerequisites are met before each step
 - Document any new issues for future reference
 
 ---
 
-**Last Updated:** February 5, 2026
-**Version:** 1.0
+**Last Updated:** February 11, 2026
+**Version:** 1.2

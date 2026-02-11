@@ -1,77 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Step 1: Implement Wallet Overview (backend APIs + frontend page)",
+  "title": "Execute Deployment Checklist Step 6: Deploy Post-Migration Build and Verify Readiness",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement the backend wallet read APIs needed for the Wallet Overview experience: (1) listWallets scoped to an organization, (2) getWallet by walletId (and organization authorization), and (3) getWalletOverviewResponse that returns per-wallet overview metrics for the selected organization. Enforce authorization so organization members can only access wallets for organizations they belong to, while global admins may access any organization.",
-      "target": "backend",
+      "text": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
+      "target": "unknown",
       "source": {
         "messageIds": [
-          "recent-messages"
+          "msg-4"
         ],
         "quotes": [
-          "User: \"Start with step 1\"",
-          "Assistant: \"1. Wallet Overview Page ... needs backend calls: getWallet, listWallets, getWalletOverviewResponse\""
+          "Yes Step 6"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes canister methods that allow the frontend to: (a) list wallets for an organization, (b) fetch a single wallet by id, and (c) fetch wallet overview data for an organization (including counts/metrics required by the UI).",
-        "For non-admin callers, wallet reads trap/return an error when requesting an organization they are not a member of.",
-        "For admin callers, the same methods work across any organization id.",
-        "Methods return stable, deterministic results and do not expose wallets/transactions/events from other organizations."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "User: \"Start with step 1\"",
-          "Assistant: \"Implement the Wallet Overview Page first.\""
-        ]
-      },
-      "acceptanceCriteria": [
-        "When no organization is selected, the page shows an inline prompt telling the user to select an organization.",
-        "When an organization is selected, the page fetches and displays the wallet overview information for that organization only.",
-        "The page shows a loading skeleton/spinner while fetching and a user-friendly error message on failure.",
-        "If the organization has no wallets, the page shows an empty state indicating no wallets were found."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "User: \"Start with step 1\""
-        ]
-      },
-      "acceptanceCriteria": [
-        "A new route exists for the Wallet Overview Page and is reachable via in-app navigation.",
-        "Switching the active organization updates the Wallet Overview data (query keys include organization id so caches are correctly separated).",
-        "No edits are made to any frontend immutable paths listed in SYSTEM_CONTEXT."
+        "Post-migration build is deployed to the network without deployment errors.",
+        "The deployed application is accessible at the deployment URL and loads without runtime errors.",
+        "An admin user can log in and view the deployment readiness banner/status in the UI.",
+        "Access control initialization status is verified in the UI; if not initialized, deployment notes indicate `CAFFEINE_ADMIN_TOKEN` must be set and backend redeployed as needed.",
+        "Stripe configuration status is verified in the UI; if not configured, admin can navigate to the admin dashboard and complete Stripe setup.",
+        "All readiness checks are confirmed as passing before proceeding to Step 7."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister with all logic in backend/main.mo.",
-    "Do not modify files under frontend/src/components/ui or any paths listed in frontend.immutablePaths.",
-    "Use English for all user-facing text."
+    "Do not proceed to Deployment Checklist Step 7 (Publish Live) until all Step 6 readiness checks pass in the UI.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implement Wallet Summary Page (step 2).",
-    "Implement Wallet Transactions Table UI (step 3).",
-    "Implement Wallet Events Feed UI (step 4).",
-    "Implement wallet create/delete mutations (these are currently stubbed in useQueries.ts and are out of scope for step 1 unless explicitly requested)."
+    "Publishing the application live (Deployment Checklist Step 7).",
+    "Adding new product features unrelated to deployment readiness verification."
   ],
   "imageRequirements": {
     "required": [],

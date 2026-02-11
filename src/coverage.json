@@ -1,45 +1,30 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-11T04:29:00.509Z",
+  "generatedAt": "2026-02-11T13:21:11.936Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement the backend wallet read APIs needed for the Wallet Overview experience: (1) listWallets scoped to an organization, (2) getWallet by walletId (and organization authorization), and (3) getWalletOverviewResponse that returns per-wallet overview metrics for the selected organization. Enforce authorization so organization members can only access wallets for organizations they belong to, while global admins may access any organization.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
+        "summary": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/WalletOverviewPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/DeploymentReadinessBanner.tsx",
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
         ],
         "matchedFiles": [
-          "frontend/src/pages/WalletOverviewPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/Header.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/Header.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/DeploymentReadinessBanner.tsx",
+          "frontend/src/pages/AdminDashboard.tsx",
+          "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md"
         ]
       }
     ]
@@ -50,9 +35,13 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/Header.tsx",
-    "frontend/src/pages/WalletOverviewPage.tsx",
+    "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
+    "frontend/src/backend.d.ts",
+    "frontend/src/components/DeploymentReadinessBanner.tsx",
+    "frontend/src/components/hrms/EmployeeManagement.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminDashboard.tsx",
+    "frontend/src/pages/CartPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -123,7 +123,15 @@ export default function WalletSummary({ isLoading: externalLoading = false, show
     );
   }
 
-  const recentTransactions = transactions?.slice(0, 10) || [];
+  // Sort transactions by createdAt descending and take the 10 most recent
+  const sortedTransactions = transactions 
+    ? [...transactions].sort((a, b) => {
+        const timeA = Number(a.createdAt);
+        const timeB = Number(b.createdAt);
+        return timeB - timeA; // Descending order (most recent first)
+      })
+    : [];
+  const recentTransactions = sortedTransactions.slice(0, 10);
 
   return (
     <div className="space-y-4">

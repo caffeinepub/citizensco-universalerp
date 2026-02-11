@@ -1,71 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement wallet feature front-end elements and required back-end integrations, starting with the Wallet Overview page, then Wallet Summary, Transactions table, Events feed, and organization-filtered wallet queries.",
-  "architectural_notes": [
-    "Implement wallet UI elements in dependency order: Overview -> Summary -> Transactions -> Events -> Org-scoped wiring (activeOrganizationId)."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-add-a-new-wallet-overview-page-in-the-frontend-that-displays-organization-scoped-wallet-overview-data-for-the-currently-active-organization-from-organizationcontext-the-page-must-load-its-data-via-react-query-hooks-calling-the-backend-apis-from-req-1-and-render-clear-loading-empty-and-error-states",
-      "title": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-wire-navigation-routing-to-access-the-new-wallet-overview-page-from-the-existing-app-routing-tanstack-router-and-ensure-the-active-organization-selection-organizationswitcher-organizationcontext-controls-which-organization-s-wallets-are-shown-on-the-wallet-overview-page",
-      "title": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    }
-  ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Implement Wallet Overview page and wire to backend calls (getWallet, listWallets, getWalletOverviewResponse).",
-      "reqIds": [],
-      "status": "in_progress"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Implement Wallet Summary page and wire to backend call getWalletSummary.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Implement Wallet Transaction Table UI and wire to backend call listWalletTransactions.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Implement Wallet Events Feed UI and wire to backend call listWalletEvents.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Wire organization-filtered wallet queries by passing activeOrganizationId from UI to existing backend functions.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Implement the backend wallet read APIs needed for the Wallet Overview experience: (1) listWallets scoped to an organization, (2) getWallet by walletId (and organization authorization), and (3) getWalletOverviewResponse that returns per-wallet overview metrics for the selected organization. Enforce authorization so organization members can only access wallets for organizations they belong to, while global admins may access any organization.",
+      "id": "feature-execute-deployment-checklist-step-6-by-deploying-the-post-migration-build-to-the-network-then-perform-the-checklist-verifications-confirm-deployment-completes-successfully-confirm-the-application-is-accessible-at-the-deployment-url-and-verify-the-in-app-deployment-readiness-status-including-access-control-initialization-status-and-stripe-configuration-status-as-an-admin-user",
+      "title": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
       "reqIds": [
         "REQ-1"
       ],
-      "status": "pending"
+      "version": 1
     }
   ],
-  "projectName": "Step 1: Implement Wallet Overview (backend APIs + frontend page)",
+  "new_feature_requests": [],
+  "projectName": "Execute Deployment Checklist Step 6: Deploy Post-Migration Build and Verify Readiness",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

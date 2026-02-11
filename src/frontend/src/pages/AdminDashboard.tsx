@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useGetAnalytics, useGetAllOrders, useIsCallerAdmin } from '../hooks/useQueries';
+import { useGetAnalytics, useGetAllOrders, useIsCallerAdmin, useDeploymentReadiness } from '../hooks/useQueries';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, ShoppingCart, Users, TrendingUp } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { DollarSign, ShoppingCart, Users, TrendingUp, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import ProductManagement from '../components/admin/ProductManagement';
 import CategoryManagement from '../components/admin/CategoryManagement';
 import OrderManagement from '../components/admin/OrderManagement';
@@ -15,6 +16,7 @@ import { useNavigate } from '@tanstack/react-router';
 export default function AdminDashboard() {
   const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
   const { data: analytics, isLoading: analyticsLoading } = useGetAnalytics();
+  const { data: readiness, isLoading: readinessLoading } = useDeploymentReadiness();
   const navigate = useNavigate();
 
   if (adminLoading) {
@@ -51,9 +53,93 @@ export default function AdminDashboard() {
     );
   }
 
+  const allReady = readiness?.accessControlInitialized && readiness?.stripeConfigured;
+
   return (
     <div className="container py-8">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+
+      {/* Deployment Readiness Section */}
+      {!readinessLoading && readiness && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              {allReady ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              )}
+              Deployment Readiness
+            </CardTitle>
+            <CardDescription>
+              System configuration status for production deployment
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {readiness.accessControlInitialized ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-destructive" />
+                  )}
+                  <div>
+                    <p className="font-medium">Access Control Initialization</p>
+                    <p className="text-sm text-muted-foreground">
+                      {readiness.accessControlInitialized
+                        ? 'System is initialized and ready'
+                        : 'Set CAFFEINE_ADMIN_TOKEN and redeploy backend'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-sm font-medium ${readiness.accessControlInitialized ? 'text-green-600' : 'text-destructive'}`}>
+                  {readiness.accessControlInitialized ? 'Ready' : 'Required'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {readiness.stripeConfigured ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-destructive" />
+                  )}
+                  <div>
+                    <p className="font-medium">Stripe Configuration</p>
+                    <p className="text-sm text-muted-foreground">
+                      {readiness.stripeConfigured
+                        ? 'Payment system is configured'
+                        : 'Configure Stripe settings below in the Products tab'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-sm font-medium ${readiness.stripeConfigured ? 'text-green-600' : 'text-destructive'}`}>
+                  {readiness.stripeConfigured ? 'Ready' : 'Required'}
+                </span>
+              </div>
+
+              {allReady ? (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertTitle>All Systems Ready</AlertTitle>
+                  <AlertDescription>
+                    Your application is fully configured and ready for production deployment.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Configuration Required</AlertTitle>
+                  <AlertDescription>
+                    Complete the required configuration steps above before deploying to production.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         <Card>

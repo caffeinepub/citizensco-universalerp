@@ -54,48 +54,64 @@ export function useDeploymentReadiness() {
         };
       }
       
-      // Backend method not yet implemented, so we check individual status methods
+      let accessControlInitialized = false;
+      let stripeConfigured = false;
+      
+      // Check access control initialization by attempting to call isCallerAdmin
       try {
-        const stripeConfigured = await actor.isStripeConfigured();
         const isAdmin = await actor.isCallerAdmin();
-        
-        // We can infer access control is initialized if we can check admin status
-        const accessControlInitialized = isAdmin !== undefined;
-        
-        const allReady = accessControlInitialized && stripeConfigured;
-        
-        let message = '';
-        const recommendations: string[] = [];
-        
-        if (allReady) {
-          message = 'All systems ready for deployment';
-        } else if (!accessControlInitialized && !stripeConfigured) {
-          message = 'System requires configuration before deployment';
-          recommendations.push('Initialize access control by setting CAFFEINE_ADMIN_TOKEN and deploying');
-          recommendations.push('Configure Stripe in the admin dashboard');
-        } else if (!accessControlInitialized) {
-          message = 'Access control needs initialization';
-          recommendations.push('Initialize access control by setting CAFFEINE_ADMIN_TOKEN and deploying');
+        // If we get a boolean response, access control is initialized
+        accessControlInitialized = typeof isAdmin === 'boolean';
+      } catch (error: any) {
+        // Authorization-related errors indicate access control is not initialized
+        const errorMessage = error?.message || String(error);
+        if (
+          errorMessage.includes('Unauthorized') ||
+          errorMessage.includes('not initialized') ||
+          errorMessage.includes('Access control') ||
+          errorMessage.includes('admin')
+        ) {
+          accessControlInitialized = false;
         } else {
-          message = 'Stripe payment needs configuration';
-          recommendations.push('Configure Stripe in the admin dashboard');
+          // Other errors might indicate a different issue, but we'll treat as not initialized
+          console.error('Access control check error:', error);
+          accessControlInitialized = false;
         }
-        
-        return {
-          accessControlInitialized,
-          stripeConfigured,
-          message,
-          recommendations,
-        };
-      } catch (error) {
-        console.error('Failed to fetch deployment readiness:', error);
-        return {
-          accessControlInitialized: false,
-          stripeConfigured: false,
-          message: 'Unable to check deployment status',
-          recommendations: ['Backend may not be fully initialized'],
-        };
       }
+      
+      // Check Stripe configuration
+      try {
+        stripeConfigured = await actor.isStripeConfigured();
+      } catch (error) {
+        console.error('Stripe configuration check error:', error);
+        stripeConfigured = false;
+      }
+      
+      const allReady = accessControlInitialized && stripeConfigured;
+      
+      let message = '';
+      const recommendations: string[] = [];
+      
+      if (allReady) {
+        message = 'All systems ready for deployment';
+      } else if (!accessControlInitialized && !stripeConfigured) {
+        message = 'System requires configuration before deployment';
+        recommendations.push('Access Control Initialization: Set CAFFEINE_ADMIN_TOKEN environment variable and redeploy the backend canister');
+        recommendations.push('Stripe Configuration: Navigate to Admin Dashboard to configure Stripe payment settings');
+      } else if (!accessControlInitialized) {
+        message = 'Access control needs initialization';
+        recommendations.push('Access Control Initialization: Set CAFFEINE_ADMIN_TOKEN environment variable and redeploy the backend canister');
+      } else {
+        message = 'Stripe payment needs configuration';
+        recommendations.push('Stripe Configuration: Navigate to Admin Dashboard to configure Stripe payment settings');
+      }
+      
+      return {
+        accessControlInitialized,
+        stripeConfigured,
+        message,
+        recommendations,
+      };
     },
     enabled: !!actor && !isFetching,
     retry: false,
@@ -111,9 +127,15 @@ export function useIsCallerAdmin() {
     queryKey: ['isCallerAdmin'],
     queryFn: async () => {
       if (!actor) return false;
-      return actor.isCallerAdmin();
+      try {
+        return await actor.isCallerAdmin();
+      } catch (error) {
+        // If authorization fails, user is not admin
+        return false;
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }
 
@@ -560,7 +582,7 @@ export function useDeleteProduct() {
   });
 }
 
-// Category Queries - Mock implementation
+// Category Queries - Mock implementation until backend is ready
 export function useGetAllCategories() {
   const { actor, isFetching } = useActor();
 
@@ -619,7 +641,7 @@ export function useDeleteCategory() {
   });
 }
 
-// Order Queries - Mock implementation
+// Order Queries - Mock implementation until backend is ready
 export function useGetAllOrders() {
   const { actor, isFetching } = useActor();
 
@@ -635,45 +657,25 @@ export function useGetAllOrders() {
 
 export function useGetUserOrders() {
   const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
 
   return useQuery<Order[]>({
-    queryKey: ['userOrders', identity?.getPrincipal().toString()],
+    queryKey: ['userOrders'],
     queryFn: async () => {
       // TODO: Implement when backend method is available
       return [];
     },
-    enabled: !!actor && !isFetching && !!identity,
+    enabled: !!actor && !isFetching,
   });
 }
 
-// Alias for useGetUserOrders
-export function useGetMyOrders() {
-  return useGetUserOrders();
-}
-
-export function useCreateOrder() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (order: Omit<Order, 'id' | 'createdAt'>) => {
-      // TODO: Implement when backend method is available
-      throw new Error('Backend method not yet implemented');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
-    },
-  });
-}
+export const useGetMyOrders = useGetUserOrders;
 
 export function usePlaceOrder() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ items, paymentMethod }: { items: OrderItem[]; paymentMethod: string }) => {
+    mutationFn: async (order: { items: OrderItem[]; total: bigint; paymentMethod: string }) => {
       // TODO: Implement when backend method is available
       throw new Error('Backend method not yet implemented');
     },
@@ -695,7 +697,6 @@ export function useUpdateOrderStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
     },
   });
 }
@@ -716,7 +717,7 @@ export function useCancelOrder() {
   });
 }
 
-// Analytics - Mock implementation
+// Analytics Queries - Mock implementation until backend is ready
 export function useGetAnalytics() {
   const { actor, isFetching } = useActor();
 
@@ -735,7 +736,7 @@ export function useGetAnalytics() {
   });
 }
 
-// Contact Queries - Mock implementation
+// CRM Queries - Mock implementation until backend is ready
 export function useGetAllContacts() {
   const { actor, isFetching } = useActor();
 
@@ -794,7 +795,6 @@ export function useDeleteContact() {
   });
 }
 
-// Lead Queries - Mock implementation
 export function useGetAllLeads() {
   const { actor, isFetching } = useActor();
 
@@ -853,7 +853,6 @@ export function useDeleteLead() {
   });
 }
 
-// Opportunity Queries - Mock implementation
 export function useGetAllOpportunities() {
   const { actor, isFetching } = useActor();
 
@@ -912,7 +911,6 @@ export function useDeleteOpportunity() {
   });
 }
 
-// CRM Stats - Mock implementation
 export function useGetCrmStats() {
   const { actor, isFetching } = useActor();
 
@@ -932,7 +930,6 @@ export function useGetCrmStats() {
   });
 }
 
-// Pipeline Dashboard - Mock implementation
 export function useGetPipelineDashboard() {
   const { actor, isFetching } = useActor();
 
@@ -952,7 +949,7 @@ export function useGetPipelineDashboard() {
   });
 }
 
-// Employee Queries - Mock implementation
+// HRMS Queries - Mock implementation until backend is ready
 export function useGetAllEmployees() {
   const { actor, isFetching } = useActor();
 
@@ -1011,7 +1008,6 @@ export function useDeleteEmployee() {
   });
 }
 
-// Department Queries - Mock implementation
 export function useGetAllDepartments() {
   const { actor, isFetching } = useActor();
 
@@ -1070,7 +1066,6 @@ export function useDeleteDepartment() {
   });
 }
 
-// Leave Request Queries - Mock implementation
 export function useGetAllLeaveRequests() {
   const { actor, isFetching } = useActor();
 
@@ -1113,10 +1108,6 @@ export function useApproveLeaveRequest() {
   });
 }
 
-export function useApproveLeave() {
-  return useApproveLeaveRequest();
-}
-
 export function useRejectLeaveRequest() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -1133,11 +1124,9 @@ export function useRejectLeaveRequest() {
   });
 }
 
-export function useRejectLeave() {
-  return useRejectLeaveRequest();
-}
+export const useApproveLeave = useApproveLeaveRequest;
+export const useRejectLeave = useRejectLeaveRequest;
 
-// HR Dashboard - Mock implementation
 export function useGetHRDashboard() {
   const { actor, isFetching } = useActor();
 

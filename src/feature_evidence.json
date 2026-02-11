@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-new-wallet-overview-page-in-the-frontend-that-displays-organization-scoped-wallet-overview-data-for-the-currently-active-organization-from-organizationcontext-the-page-must-load-its-data-via-react-query-hooks-calling-the-backend-apis-from-req-1-and-render-clear-loading-empty-and-error-states",
-      "featureTitle": "Add a new Wallet Overview Page in the frontend that displays organization-scoped wallet overview data for the currently active organization from OrganizationContext. The page must load its data via React Query hooks calling the backend APIs from REQ-1 and render clear loading, empty, and error states.",
+      "featureId": "feature-execute-deployment-checklist-step-6-by-deploying-the-post-migration-build-to-the-network-then-perform-the-checklist-verifications-confirm-deployment-completes-successfully-confirm-the-application-is-accessible-at-the-deployment-url-and-verify-the-in-app-deployment-readiness-status-including-access-control-initialization-status-and-stripe-configuration-status-as-an-admin-user",
+      "featureTitle": "Execute Deployment Checklist Step 6 by deploying the post-migration build to the network, then perform the checklist verifications: confirm deployment completes successfully, confirm the application is accessible at the deployment URL, and verify the in-app deployment readiness status (including access control initialization status and Stripe configuration status) as an admin user.",
       "files": [
-        "frontend/src/pages/WalletOverviewPage.tsx"
+        "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
+        "frontend/src/components/DeploymentReadinessBanner.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminDashboard.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,30 +22,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-wire-navigation-routing-to-access-the-new-wallet-overview-page-from-the-existing-app-routing-tanstack-router-and-ensure-the-active-organization-selection-organizationswitcher-organizationcontext-controls-which-organization-s-wallets-are-shown-on-the-wallet-overview-page",
-      "featureTitle": "Wire navigation/routing to access the new Wallet Overview Page from the existing app routing (tanstack router) and ensure the active organization selection (OrganizationSwitcher/OrganizationContext) controls which organization’s wallets are shown on the Wallet Overview Page.",
-      "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/Header.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "stripe@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "http-outcalls@3.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
+        "REQ-1"
       ],
       "confidence": "high"
     }

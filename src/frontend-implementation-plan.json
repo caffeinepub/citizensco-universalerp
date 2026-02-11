@@ -1,48 +1,39 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Step 1: Wallet Overview (frontend only)",
+  "title": "Step 6 UI readiness verification (admin access control + Stripe config)",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Create a Wallet Overview Page that reads the active organization from OrganizationContext and loads organization-scoped wallet overview data via React Query with clear loading/empty/error states.",
+      "id": "REQ-1",
+      "summary": "Ensure the deployed app exposes a clear admin-only deployment readiness status UI that accurately reports access control initialization and Stripe configuration, and provides guidance/actions to resolve any failing checks.",
       "acceptanceCriteria": [
-        "When no organization is selected, the page shows an inline prompt telling the user to select an organization.",
-        "When an organization is selected, the page fetches and displays the wallet overview information for that organization only.",
-        "The page shows a loading skeleton/spinner while fetching and a user-friendly error message on failure.",
-        "If the organization has no wallets, the page shows an empty state indicating no wallets were found."
+        "Post-migration build is deployed to the network without deployment errors.",
+        "The deployed application is accessible at the deployment URL and loads without runtime errors.",
+        "An admin user can log in and view the deployment readiness banner/status in the UI.",
+        "Access control initialization status is verified in the UI; if not initialized, deployment notes indicate `CAFFEINE_ADMIN_TOKEN` must be set and backend redeployed as needed.",
+        "Stripe configuration status is verified in the UI; if not configured, admin can navigate to the admin dashboard and complete Stripe setup.",
+        "All readiness checks are confirmed as passing before proceeding to Step 7."
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/pages/WalletOverviewPage.tsx",
-          "operation": "create",
-          "description": "Implement the Wallet Overview Page UI. Read activeOrganization from OrganizationContext; when missing, render an inline prompt. When present, fetch overview metrics using React Query hooks (org-scoped). Render loading (skeleton/spinner), empty (no wallets), and error states (including authorization errors normalized to English)."
-        },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add/extend wallet read hooks needed by the Wallet Overview experience to call existing backend actor methods (e.g., organization-scoped wallet list, single wallet fetch by id, and organization-scoped wallet overview summary). Ensure query keys include organizationId (and walletId where relevant) and normalize errors with normalizeWalletError for user-friendly messages."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add routing and navigation entry points for the Wallet Overview Page and ensure organization switching updates cached queries by scoping keys with organization id.",
-      "acceptanceCriteria": [
-        "A new route exists for the Wallet Overview Page and is reachable via in-app navigation.",
-        "Switching the active organization updates the Wallet Overview data (query keys include organization id so caches are correctly separated).",
-        "No edits are made to any frontend immutable paths listed in SYSTEM_CONTEXT."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Register a new tanstack router route for the Wallet Overview Page and add it to the route tree so it is navigable within the app."
+          "description": "Harden `useDeploymentReadiness()` so access control initialization is determined reliably: treat authorization-related failures from the admin check as 'not initialized/unauthorized' (not 'initialized'), preserve Stripe-config check via `isStripeConfigured()`, and return clear English messages + recommendations matching Step 6 (including the `CAFFEINE_ADMIN_TOKEN` redeploy note). Use the authorization component’s admin-check capability (via `isCallerAdmin()`/actor init) and the stripe component’s Stripe-config capability (via `isStripeConfigured()`). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/components/DeploymentReadinessBanner.tsx",
           "operation": "modify",
-          "description": "Add an in-app navigation control (e.g., a header button/link) that routes to the new Wallet Overview Page for authenticated users."
+          "description": "Update the admin-only readiness UI so an admin can always view the current readiness status (even when all checks pass): show a success state when ready and a warning/error state when not ready, with explicit, English-labeled check rows for Access Control Initialization and Stripe Configuration. When Stripe is not configured, include a clear CTA that navigates to the Admin Dashboard for Stripe setup. This uses the authorization component’s role-based admin gating and the stripe component’s configuration status signal. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboard.tsx",
+          "operation": "modify",
+          "description": "Add a small 'Deployment Readiness' section visible to admins that mirrors the same readiness checks and links to resolve issues (e.g., Stripe configuration). Ensure the text explicitly guides admins to complete Stripe setup when not configured. This complements the banner and supports Step 6 verification without introducing new routes. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/ACTIVITY_2_DEPLOYMENT_CHECKLIST.md",
+          "operation": "modify",
+          "description": "Align Step 6 instructions with the updated UI behavior: readiness status is visible to admins even when all checks pass, include explicit guidance for failing access control initialization (mention `CAFFEINE_ADMIN_TOKEN` and redeploy) and failing Stripe configuration (navigate to Admin Dashboard to configure). Keep all user-facing text in English."
         }
       ]
     }
